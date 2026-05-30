@@ -22,7 +22,7 @@ AI_TRANSLATE_URL = os.environ.get("ANIMADEX_AI_TRANSLATE_URL", "")
 AI_TRANSLATE_MODEL = os.environ.get("ANIMADEX_AI_MODEL", "qwen2.5:7b")
 AI_API_KEY = os.environ.get("ANIMADEX_AI_API_KEY", "")
 
-_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=API_TIMEOUT)
+_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=API_TIMEOUT, verify=False)
 
 server = FastMCP("AnimaDex", instructions="Query animadex.net characters, artists and series data",
                  transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
@@ -119,17 +119,18 @@ def _cn_to_en_via_api(text: str) -> str:
     """Translate Chinese to English. Supports Google and AI backends."""
     if TRANSLATOR == "ai" and AI_TRANSLATE_URL:
         return _ai_translate(text)
-    # Default: Google Translate
+    # Default: Google Translate (verify=False for Python 3.14 SSL compat)
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q={_url_enc(text)}"
-        r = _client.get(url, timeout=10)
-        if r.status_code == 200:
-            parts = r.json()
-            result = ""
-            for p in parts[0]:
-                if p[0]:
-                    result += p[0]
-            return result.strip()
+        with httpx.Client(verify=False, timeout=5, headers={"User-Agent": USER_AGENT}) as _gc:
+            r = _gc.get(url)
+            if r.status_code == 200:
+                parts = r.json()
+                result = ""
+                for p in parts[0]:
+                    if p[0]:
+                        result += p[0]
+                return result.strip()
     except Exception:
         pass
     return text
