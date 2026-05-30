@@ -19,7 +19,7 @@ if not exist ".venv\Scripts\python.exe" (
 
 echo [信息] 正在启动服务...
 echo.
-start "" http://127.0.0.1:8080
+start "" http://127.0.0.1:11451
 
 call .venv\Scripts\activate.bat
 python app.py
