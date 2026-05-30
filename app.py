@@ -1103,19 +1103,10 @@ async def api_image(request):
             return Response(content=r.content, media_type=r.headers.get("content-type", "image/webp"))
     except Exception:
         pass
-    # Try underscore + direct download
+    # Redirect to CDN, try _ version for : in names
+    from starlette.responses import RedirectResponse
     alt = url.replace("%3A", "_")
-    for u in (alt, url):
-        try:
-            r = _client.get(u, timeout=15)
-            if r.status_code == 200:
-                cache_path.write_bytes(r.content)
-                from starlette.responses import Response
-                return Response(content=r.content, media_type="image/webp")
-        except:
-            pass
-    from starlette.responses import Response
-    return Response(content=b"", status_code=204)
+    return RedirectResponse(alt if alt != url else url)
 
 # ── App assembly ────────────────────────────────────────────────────────
 
