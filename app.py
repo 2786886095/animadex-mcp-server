@@ -1078,6 +1078,17 @@ async def api_image(request):
     except Exception:
         pass
     from starlette.responses import RedirectResponse
+    # Try underscore version (CDN uses _ instead of :)
+    alt_url = url.replace("%3A", "_")
+    if alt_url != url:
+        try:
+            r = _client.get(alt_url, timeout=5)
+            if r.status_code == 200:
+                from starlette.responses import Response
+                return Response(content=r.content, media_type="image/webp")
+        except:
+            pass
+        return RedirectResponse(alt_url)
     return RedirectResponse(url)
 
 # ── App assembly ────────────────────────────────────────────────────────
