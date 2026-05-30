@@ -866,7 +866,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 </div>
 <script>
 var isLocal=location.hostname==='127.0.0.1'||location.hostname==='localhost';
-function imgTag(u,cls){if(isLocal)return '<img class="'+cls+'" src="/api/image?url='+u+'" alt="" loading="lazy">';return '<img class="'+cls+'" src="'+u+'" alt="" loading="lazy" onerror="var s=this.src;this.onerror=null;this.src=\'/api/image?url=\'+encodeURIComponent(s)">';}
+
 
 var selected={},resultsData=[],_cols=4;(function(){var bs=document.querySelectorAll(".col-btn");bs.forEach(function(b){b.addEventListener("click",function(){bs.forEach(function(x){x.classList.remove("on")});b.classList.add("on");var c=parseInt(b.dataset.c);if(c>0){_cols=c;document.getElementById("results").style.setProperty("--cols",c)}else{_cols=0;document.getElementById("results").style.setProperty("--cols","auto-fill");document.getElementById("results").style.gridTemplateColumns="repeat(auto-fill,minmax(240px,1fr))"}})})})();
 function search(){
@@ -888,7 +888,7 @@ function search(){
       el.innerHTML=resultsData.map(function(r,i){
         var img=r.thumb_url||'',trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
-        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?imgTag(img,'card-img'):'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
+        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="/api/image?url='+img+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
       }).join('');
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
@@ -1044,7 +1044,7 @@ function openDetail(slug){
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
     if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
-    html+=img?imgTag(img,'detail-img').replace('loading="lazy"','onclick="window.open(this.src)"'):'';
+    html+=img?'<img class="detail-img" src="/api/image?url='+img+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">🏷️ 特征标签 (Tags)</div><div class="detail-text tags" id="dtg-'+slug+'">'+tags+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dtg-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">📋 全部</div><div class="detail-text" style="display:none" id="df-'+slug+'">'+(trigger+', '+tags).replace(/</g,'&lt;')+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'df-'+slug+'\',this)">📋 复制全部</button></div></div>';
