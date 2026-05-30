@@ -752,7 +752,7 @@ function showSettings(){
   +'</select></div>'
   +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
-  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com/v1/chat/completions')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="https://api.deepseek.com/v1/chat/completions"></div>'
+  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="https://api.deepseek.com"></div>'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
   +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="sk-..."></div>'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
@@ -766,7 +766,7 @@ function showSettings(){
   +'</select>'
   +'<input id="ai_model_custom" value="'+g('model','').replace('custom:','')+'" style="width:100%;margin-top:6px;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none;display:'+(g('model','').startsWith('custom:')?'block':'none')+';'+(g('model','').startsWith('custom:')?'':'display:none')+'" placeholder="输入模型名">'
   +'</div>'
-  +'<button onclick="testAiConn()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer;margin-bottom:6px">🔌 测试连接</button>'
+  +'<div style="display:flex;gap:6px"><button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button><button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button></div>'
   +'<div id="ai_test_result" style="font-size:12px;margin-top:4px"></div>'
   +'</div>'
   +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
@@ -793,19 +793,55 @@ function getModelVal(){
   if(sel.value==='custom') return 'custom:'+document.getElementById('ai_model_custom').value;
   return sel.value;
 }
+function normUrl(u){
+  if(!u)return u;
+  if(u.includes('/chat/completions')||u.includes('/api/generate')) return u;
+  if(u.includes('api.deepseek.com')||u.includes('api.openai.com')||u.includes('api.groq.com')) return u.replace(/\/?$/,'')+'/v1/chat/completions';
+  if(u.includes('localhost:11434')||u.includes('127.0.0.1:11434')) return u.replace(/\/?$/,'')+'/api/generate';
+  return u.replace(/\/?$/,'')+'/v1/chat/completions';
+}
+function modelsUrl(u){
+  if(u.includes('localhost:11434')||u.includes('127.0.0.1:11434')) return u.replace(/\/?$/,'')+'/api/tags';
+  return u.replace(/\/?$/,'').replace('/v1/chat/completions','').replace('/api/generate','')+'/v1/models';
+}
 function testAiConn(){
   var el=document.getElementById('ai_test_result');
+  var url=normUrl(document.getElementById('ai_url').value);
+  document.getElementById('ai_url').value=url; // auto-fix
   el.innerHTML='测试中…';el.style.color='#888';
-  var url=document.getElementById('ai_url').value;
   var key=document.getElementById('ai_key').value;
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':key?'Bearer '+key:''},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:'hi'}],stream:false})})
     .then(function(r){if(r.ok){el.innerHTML='✅ 连接成功!';el.style.color='#4ade80'}else{el.innerHTML='❌ 失败: HTTP '+r.status;el.style.color='#f06060'}})
     .catch(function(e){el.innerHTML='❌ 连接失败: '+e.message;el.style.color='#f06060'});
 }
+function detectModels(){
+  var el=document.getElementById('ai_test_result');
+  var url=modelsUrl(document.getElementById('ai_url').value);
+  var key=document.getElementById('ai_key').value;
+  el.innerHTML='检测模型中…';el.style.color='#888';
+  var h={};
+  if(key) h['Authorization']='Bearer '+key;
+  fetch(url,{headers:h})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+    .then(function(d){
+      var models=(d.data||d.models||[]).map(function(m){return m.id||m.name}).filter(Boolean);
+      if(!models.length){el.innerHTML='❌ 未获取到模型列表';el.style.color='#f06060';return}
+      var sel=document.getElementById('ai_model');
+      // Clear and populate
+      sel.innerHTML='';
+      models.forEach(function(m){
+        var o=document.createElement('option');
+        o.value=m;o.textContent=m;
+        sel.appendChild(o);
+      });
+      el.innerHTML='✅ 检测到 '+models.length+' 个模型，已选择第一个';el.style.color='#4ade80';
+    })
+    .catch(function(e){el.innerHTML='❌ 检测失败: '+e.message;el.style.color='#f06060'});
+}
 function saveAiSettings(){
   var ls=window.localStorage||{};
   ls.setItem('ad_mode',document.getElementById('ai_sel').value);
-  ls.setItem('ad_url',document.getElementById('ai_url').value);
+  ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
   ls.setItem('ad_key',document.getElementById('ai_key').value);
   ls.setItem('ad_model',getModelVal());
   var btn=document.querySelector('.detail-overlay.open .detail-copy-btn');
@@ -819,7 +855,7 @@ function saveAiSettings(){
 function getAiParams(){
   var ls=window.localStorage||{};
   if(ls.getItem('ad_mode')!=='ai')return'';
-  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com/v1/chat/completions')
+  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com')
     +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
     +'&ai_model='+encodeURIComponent(ls.getItem('ai_model')||'deepseek-chat');
 }
