@@ -1099,55 +1099,38 @@ app = Starlette(routes=[
 ])
 
 def _precache_thumbs():
-    import hashlib, pathlib
+    """Background download all 36k+ thumbnails from local DB."""
+    import pathlib
+    thumb_dir = pathlib.Path(CACHE_DIR) / "thumbs"
+    thumb_dir.mkdir(parents=True, exist_ok=True)
+    if not LOCAL_DB:
+        return
     try:
-        thumb_dir = pathlib.Path(CACHE_DIR) / "thumbs"
-        thumb_dir.mkdir(parents=True, exist_ok=True)
-        data = _get("/api/characters/search", q="", page=1, sort="count")
-        results = data.get("results", [])
-        if not results:
-            return
-        cached = 0
-        for r in results[:108]:
-            url = r.get("thumb_url", "")
+        cur = LOCAL_DB.cursor()
+        cur.execute("SELECT thumb_url FROM characters WHERE thumb_url != '' ORDER BY count DESC")
+        rows = cur.fetchall()
+        total = len(rows)
+        cached = sum(1 for p in thumb_dir.iterdir() if p.suffix == '.webp') if thumb_dir.exists() else 0
+        print(f"[cache] {cached}/{total} thumbnails cached, downloading remaining...")
+        for i, row in enumerate(rows):
+            url = row[0] or ""
             if not url:
                 continue
-            fname = hashlib.md5(url.encode()).hexdigest() + ".webp"
+            fname = _hl.md5(url.encode()).hexdigest() + ".webp"
             fpath = thumb_dir / fname
             if fpath.exists():
                 continue
             try:
-                resp = _client.get(url, timeout=10)
+                resp = _client.get(url, timeout=5)
                 if resp.status_code == 200:
                     fpath.write_bytes(resp.content)
-                    cached += 1
             except:
                 pass
-        if cached:
-            print(f"[cache] Pre-cached {cached} thumbnails")
-        # Also try to cache thumbnails from the local DB for popular chars
-        if LOCAL_DB:
-            try:
-                cur = LOCAL_DB.cursor()
-                cur.execute("SELECT thumb_url FROM characters ORDER BY count DESC LIMIT 500")
-                for row in cur.fetchall():
-                    url = row[0] if row else ""
-                    if not url:
-                        continue
-                    fname = _hl.md5(url.encode()).hexdigest() + ".webp"
-                    fpath = thumb_dir / fname
-                    if fpath.exists():
-                        continue
-                    try:
-                        resp = _client.get(url, timeout=5)
-                        if resp.status_code == 200:
-                            fpath.write_bytes(resp.content)
-                    except:
-                        pass
-            except:
-                pass
-    except:
-        pass
+            if (i + 1) % 500 == 0:
+                new_c = sum(1 for p in thumb_dir.iterdir() if p.suffix == '.webp')
+                print(f"[cache] ... {new_c}/{total} thumbnails")
+    except Exception as e:
+        print(f"[cache] Error: {e}")
 
 
 if __name__ == "__main__":
