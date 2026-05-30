@@ -22,7 +22,7 @@ AI_TRANSLATE_URL = os.environ.get("ANIMADEX_AI_TRANSLATE_URL", "")
 AI_TRANSLATE_MODEL = os.environ.get("ANIMADEX_AI_MODEL", "qwen2.5:7b")
 AI_API_KEY = os.environ.get("ANIMADEX_AI_API_KEY", "")
 
-_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=API_TIMEOUT, verify=False)
+_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=httpx.Timeout(API_TIMEOUT, connect=5), verify=False)
 
 server = FastMCP("AnimaDex", instructions="Query animadex.net characters, artists and series data",
                  transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
