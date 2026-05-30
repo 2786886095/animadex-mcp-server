@@ -715,7 +715,7 @@ function search(){
       el.innerHTML=resultsData.map(function(r,i){
         var img=r.thumb_url||'',trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
-        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+img+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
+        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
       }).join('');
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
@@ -748,7 +748,7 @@ function openDetail(slug){
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
     if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
-    html+=img?'<img class="detail-img" src="'+img+'" alt="" onclick="window.open(this.src)">':'';
+    html+=img?'<img class="detail-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">🏷️ 特征标签 (Tags)</div><div class="detail-text tags" id="dtg-'+slug+'">'+tags+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dtg-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">📋 全部</div><div class="detail-text" style="display:none" id="df-'+slug+'">'+(trigger+', '+tags).replace(/</g,'&lt;')+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'df-'+slug+'\',this)">📋 复制全部</button></div></div>';
@@ -767,6 +767,34 @@ var qp=new URLSearchParams(location.search);if(qp.get('q')){document.getElementB
 </body>
 </html>"""
 
+
+CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+os.makedirs(os.path.join(CACHE_DIR, "thumbs"), exist_ok=True)
+
+async def api_image(request):
+    url = request.query_params.get("url", "")
+    if not url:
+        return JSONResponse({"error": "url required"}, status_code=400)
+    from hashlib import md5
+    from pathlib import Path
+    import mimetypes
+    ext = ".webp"
+    if ".png" in url:
+        ext = ".png"
+    cache_path = Path(CACHE_DIR) / "thumbs" / (md5(url.encode()).hexdigest() + ext)
+    if cache_path.exists():
+        from starlette.responses import FileResponse
+        return FileResponse(str(cache_path), media_type="image/webp")
+    try:
+        r = _client.get(url, timeout=30)
+        if r.status_code == 200:
+            cache_path.write_bytes(r.content)
+            from starlette.responses import Response
+            return Response(content=r.content, media_type=r.headers.get("content-type", "image/webp"))
+    except Exception:
+        pass
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url)
 
 # ── App assembly ────────────────────────────────────────────────────────
 
@@ -808,6 +836,7 @@ app = Starlette(routes=[
     Route("/", endpoint=index),
     Route("/api/search", endpoint=api_search),
     Route("/api/character", endpoint=api_character),
+    Route("/api/image", endpoint=api_image),
     Mount("/", app=mcp_sse_app),
 ])
 
