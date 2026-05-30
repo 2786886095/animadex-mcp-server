@@ -845,9 +845,9 @@ if __name__ == "__main__":
 
     # Build full character index BEFORE starting the server (synchronous)
     print("╔══════════════════════════════╗")
-print("║   AnimaDex Server Starting  ║")
-print("║   Loading 36,492 chars...   ║")
-print("╚══════════════════════════════╝")
+    print("║   AnimaDex Server Starting  ║")
+    print("║   Loading 36,492 chars...   ║")
+    print("╚══════════════════════════════╝")
     _build_index()
 
     port = int(os.environ.get("PORT", 11451))
