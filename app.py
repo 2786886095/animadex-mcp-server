@@ -757,7 +757,7 @@ function showSettings(){
   +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="sk-..."></div>'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
   +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +'<option value="deepseek-chat"'+(g('model','deepseek-chat')==='deepseek-chat'?' selected':'')+'>DeepSeek Chat</option>'
+  +'<option value="">（点击「检测模型」获取）</option>'
   +'<option value="deepseek-reasoner"'+(g('model','')==='deepseek-reasoner'?' selected':'')+'>DeepSeek Reasoner</option>'
   +'<option value="gpt-4o-mini"'+(g('model','')==='gpt-4o-mini'?' selected':'')+'>GPT-4o Mini</option>'
   +'<option value="gpt-4o"'+(g('model','')==='gpt-4o'?' selected':'')+'>GPT-4o</option>'
@@ -774,7 +774,7 @@ function showSettings(){
   +'<code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code>'
   +'</div>'
   +'<button class="detail-copy-btn" onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">💾 保存</button>'
-  +'</div><button class="detail-close" onclick="this.closest(\".detail-overlay\").remove()">关闭 ✕</button></div>';
+  +'</div><button class="detail-close" onclick="this.closest(\".detail-overlay\").remove()">id="settings_close" onclick="closeSettings()">关闭 ✕</button></div>';
   document.body.appendChild(o);
   // Show/hide AI config based on selection
   document.getElementById('ai_sel').onchange=function(){
@@ -838,6 +838,7 @@ function detectModels(){
     })
     .catch(function(e){el.innerHTML='❌ 检测失败: '+e.message;el.style.color='#f06060'});
 }
+function closeSettings(){var o=document.querySelector('.detail-overlay.open');if(o)o.remove()}
 function saveAiSettings(){
   var ls=window.localStorage||{};
   ls.setItem('ad_mode',document.getElementById('ai_sel').value);
@@ -861,7 +862,7 @@ function openDetail(slug){
   if(!overlay){overlay=document.createElement('div');overlay.className='detail-overlay';overlay.onclick=function(e){if(e.target===overlay)closeDetail()};document.body.appendChild(overlay)}
   overlay.innerHTML='<div class="detail-panel"><div style="display:flex;align-items:center;justify-content:center;padding:60px;color:#666">加载中…</div></div>';overlay.classList.add('open');
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
-    if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
+    if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">id="settings_close" onclick="closeSettings()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
     html+=img?'<img class="detail-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
