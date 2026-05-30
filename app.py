@@ -731,7 +731,7 @@ function showAPI(){
   o.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body"><h3 style="margin-bottom:12px">🔌 AnimaDex API</h3>'
   +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
   +'<div style="color:#888;margin-bottom:4px">MCP Server (Claude Code)</div>'
-  +'<code style="color:#f0c060;word-break:break-all">https://langbai666-animadex-mcp.hf.space/sse</code>'
+  +'<code style="color:#f0c060;word-break:break-all">'+window.location.origin+'/sse</code>'
   +'</div>'
   +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
   +'<div style="color:#888;margin-bottom:4px">REST API 端点</div>'
