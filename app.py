@@ -779,7 +779,7 @@ function showSettings(){
   +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型（点击检测后选择）</div>'
   +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +'<option value="">点击「检测模型」获取列表</option>'
+  +(g('model','')?('<option value="'+g('model','')+'" selected>'+g('model','')+'</option>'):'<option value="">点击「检测模型」获取列表</option>')
   +'</select>'
   +'</div>'
   +'<div style="display:flex;gap:6px;margin-bottom:10px">'
