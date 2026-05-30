@@ -739,64 +739,52 @@ function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
-  var ls=window.localStorage||{};
+  var ls=window.localStorage;
   function g(k,d){return ls.getItem('ad_'+k)||d}
   function s(k,v){ls.setItem('ad_'+k,v)}
-  var o=document.createElement('div');o.className='detail-overlay';o.style.display='flex';o.onclick=function(e){if(e.target===o)o.remove()};
+  var o=document.createElement('div');
+  o.className='detail-overlay';
+  o.style.display='flex';
+  o.onclick=function(e){if(e.target===o)o.remove()};
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
   +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
   +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译（默认）</option>'
-  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译（需配置下方信息）</option>'
+  +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译</option>'
+  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译</option>'
   +'</select></div>'
   +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
-  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="https://api.deepseek.com"></div>'
+  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
   +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
-  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none" placeholder="sk-..."></div>'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
+  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型（点击检测后选择）</div>'
   +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +'<option value="">（点击「检测模型」获取）</option>'
-  +'<option value="deepseek-reasoner"'+(g('model','')==='deepseek-reasoner'?' selected':'')+'>DeepSeek Reasoner</option>'
-  +'<option value="gpt-4o-mini"'+(g('model','')==='gpt-4o-mini'?' selected':'')+'>GPT-4o Mini</option>'
-  +'<option value="gpt-4o"'+(g('model','')==='gpt-4o'?' selected':'')+'>GPT-4o</option>'
-  +'<option value="qwen2.5:7b"'+(g('model','')==='qwen2.5:7b'?' selected':'')+'>Qwen 2.5 (Ollama)</option>'
-  +'<option value="custom"'+(g('model','').startsWith('custom:')?' selected':'')+'>自定义模型</option>'
+  +'<option value="">点击「检测模型」获取列表</option>'
   +'</select>'
-  +'<input id="ai_model_custom" value="'+g('model','').replace('custom:','')+'" style="width:100%;margin-top:6px;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none;display:'+(g('model','').startsWith('custom:')?'block':'none')+';'+(g('model','').startsWith('custom:')?'':'display:none')+'" placeholder="输入模型名">'
   +'</div>'
-  +'<div style="display:flex;gap:6px"><button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button><button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button></div>'
-  +'<div id="ai_test_result" style="font-size:12px;margin-top:4px"></div>'
+  +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+  +'<button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button>'
+  +'<button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button>'
   +'</div>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">🔌 MCP 地址</div>'
-  +'<code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code>'
-  +'</div>'
-  +'<button class="detail-copy-btn" onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">💾 保存</button>'
-  +'</div><button class="detail-close" onclick="this.closest(\".detail-overlay\").remove()">id="settings_close" onclick="closeSettings()">关闭 ✕</button></div>';
+  +'<div id="ai_test_result" style="font-size:12px;margin-bottom:10px"></div>'
+  +'<button onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">💾 保存</button>'
+  +'<button onclick="closeSettings()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:transparent;color:#888;font-size:13px;cursor:pointer">关闭 ✕</button>'
+  +'</div></div>';
   document.body.appendChild(o);
-  // Show/hide AI config based on selection
+  // Toggle ai config
   document.getElementById('ai_sel').onchange=function(){
     document.getElementById('ai_config').style.display=this.value==='ai'?'block':'none';
   };
-  // Show/hide custom model input
-  setTimeout(function(){
-    var ms=document.getElementById('ai_model');
-    if(ms) ms.onchange=function(){
-      document.getElementById('ai_model_custom').style.display=this.value==='custom'?'block':'none';
-    };
-  },100);
 }
 function getModelVal(){
   var sel=document.getElementById('ai_model');
-  if(sel.value==='custom') return 'custom:'+document.getElementById('ai_model_custom').value;
   return sel.value;
 }
 function normUrl(u){
   if(!u)return u;
   if(u.includes('/chat/completions')||u.includes('/api/generate')) return u;
-  if(u.includes('api.deepseek.com')||u.includes('api.openai.com')||u.includes('api.groq.com')) return u.replace(/\/?$/,'')+'/v1/chat/completions';
+  if(u.includes('deepseek')||u.includes('openai')||u.includes('groq')) return u.replace(/\/?$/,'')+'/v1/chat/completions';
   if(u.includes('localhost:11434')||u.includes('127.0.0.1:11434')) return u.replace(/\/?$/,'')+'/api/generate';
   return u.replace(/\/?$/,'')+'/v1/chat/completions';
 }
@@ -804,42 +792,60 @@ function modelsUrl(u){
   if(u.includes('localhost:11434')||u.includes('127.0.0.1:11434')) return u.replace(/\/?$/,'')+'/api/tags';
   return u.replace(/\/?$/,'').replace('/v1/chat/completions','').replace('/api/generate','')+'/v1/models';
 }
+function closeSettings(){
+  var o=document.querySelector('.detail-overlay.open');
+  if(o)o.remove();
+}
 function testAiConn(){
   var el=document.getElementById('ai_test_result');
   var url=normUrl(document.getElementById('ai_url').value);
-  document.getElementById('ai_url').value=url; // auto-fix
-  el.innerHTML='测试中…';el.style.color='#888';
+  document.getElementById('ai_url').value=url;
+  el.innerHTML='测试中...';el.style.color='#888';
   var key=document.getElementById('ai_key').value;
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':key?'Bearer '+key:''},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:'hi'}],stream:false})})
-    .then(function(r){if(r.ok){el.innerHTML='✅ 连接成功!';el.style.color='#4ade80'}else{el.innerHTML='❌ 失败: HTTP '+r.status;el.style.color='#f06060'}})
-    .catch(function(e){el.innerHTML='❌ 连接失败: '+e.message;el.style.color='#f06060'});
+    .then(function(r){if(r.ok){el.innerHTML='✅ 连接成功!';el.style.color='#4ade80'}else{el.innerHTML='❌ HTTP '+r.status;el.style.color='#f06060'}})
+    .catch(function(e){el.innerHTML='❌ 失败: '+e.message;el.style.color='#f06060'});
 }
 function detectModels(){
   var el=document.getElementById('ai_test_result');
   var url=modelsUrl(document.getElementById('ai_url').value);
   var key=document.getElementById('ai_key').value;
-  el.innerHTML='检测模型中…';el.style.color='#888';
+  el.innerHTML='检测中...';el.style.color='#888';
   var h={};
   if(key) h['Authorization']='Bearer '+key;
   fetch(url,{headers:h})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
     .then(function(d){
       var models=(d.data||d.models||[]).map(function(m){return m.id||m.name}).filter(Boolean);
-      if(!models.length){el.innerHTML='❌ 未获取到模型列表';el.style.color='#f06060';return}
+      if(!models.length){el.innerHTML='❌ 未获取到模型';el.style.color='#f06060';return}
       var sel=document.getElementById('ai_model');
-      // Clear and populate
-      sel.innerHTML='';
+      sel.innerHTML='<option value="">选择模型...</option>';
       models.forEach(function(m){
         var o=document.createElement('option');
-        o.value=m;o.textContent=m;
-        sel.appendChild(o);
+        o.value=m;o.textContent=m;sel.appendChild(o);
       });
-      el.innerHTML='✅ 检测到 '+models.length+' 个模型，已选择第一个';el.style.color='#4ade80';
+      el.innerHTML='✅ 检测到 '+models.length+' 个模型';el.style.color='#4ade80';
     })
     .catch(function(e){el.innerHTML='❌ 检测失败: '+e.message;el.style.color='#f06060'});
 }
-function closeSettings(){var o=document.querySelector('.detail-overlay.open');if(o)o.remove()}
 function saveAiSettings(){
+  try{
+    var ls=window.localStorage;
+    ls.setItem('ad_mode',document.getElementById('ai_sel').value);
+    ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
+    ls.setItem('ad_key',document.getElementById('ai_key').value);
+    ls.setItem('ad_model',document.getElementById('ai_model').value);
+    closeSettings();
+    if(document.getElementById('q').value) search();
+  }catch(e){alert('保存失败: '+e.message);}
+}
+function getAiParams(){
+  var ls=window.localStorage;
+  if(ls.getItem('ad_mode')!=='ai')return'';
+  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com/v1/chat/completions')
+    +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
+    +'&ai_model='+encodeURIComponent(ls.getItem('ad_model')||'deepseek-chat');
+}function saveAiSettings(){
   var ls=window.localStorage||{};
   ls.setItem('ad_mode',document.getElementById('ai_sel').value);
   ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
@@ -850,19 +856,12 @@ function saveAiSettings(){
   if(ov) ov.remove();
   if(document.getElementById('q').value) search();
 }
-function getAiParams(){
-  var ls=window.localStorage||{};
-  if(ls.getItem('ad_mode')!=='ai')return'';
-  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com')
-    +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
-    +'&ai_model='+encodeURIComponent(ls.getItem('ai_model')||'deepseek-chat');
-}
-var overlay=null;
+
 function openDetail(slug){
   if(!overlay){overlay=document.createElement('div');overlay.className='detail-overlay';overlay.onclick=function(e){if(e.target===overlay)closeDetail()};document.body.appendChild(overlay)}
   overlay.innerHTML='<div class="detail-panel"><div style="display:flex;align-items:center;justify-content:center;padding:60px;color:#666">加载中…</div></div>';overlay.classList.add('open');
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
-    if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">id="settings_close" onclick="closeSettings()">关闭 ✕</button></div>';return}
+    if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
     html+=img?'<img class="detail-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
