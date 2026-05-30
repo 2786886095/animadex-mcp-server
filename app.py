@@ -888,7 +888,7 @@ function search(){
       el.innerHTML=resultsData.map(function(r,i){
         var img=r.thumb_url||'',trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
-        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="/api/image?url='+img+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
+        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src='+img+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
       }).join('');
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
@@ -1044,7 +1044,7 @@ function openDetail(slug){
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
     if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
-    html+=img?'<img class="detail-img" src="/api/image?url='+img+'" alt="" onclick="window.open(this.src)">':'';
+    html+=img?'<img class="detail-img" src='+img+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">🏷️ 特征标签 (Tags)</div><div class="detail-text tags" id="dtg-'+slug+'">'+tags+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dtg-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">📋 全部</div><div class="detail-text" style="display:none" id="df-'+slug+'">'+(trigger+', '+tags).replace(/</g,'&lt;')+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'df-'+slug+'\',this)">📋 复制全部</button></div></div>';
@@ -1107,7 +1107,6 @@ async def api_image(request):
             return Response(content=r.content, media_type=r.headers.get("content-type", "image/webp"))
     except Exception:
         pass
-    from starlette.responses import RedirectResponse
     # Try underscore version (CDN uses _ instead of :)
     alt_url = url.replace("%3A", "_")
     if alt_url != url:
@@ -1118,8 +1117,7 @@ async def api_image(request):
                 return Response(content=r.content, media_type="image/webp")
         except:
             pass
-        return RedirectResponse(alt_url)
-    return RedirectResponse(url)
+        from starlette.responses import Response as _R; _r2=_client.get(url,timeout=15,follow_redirects=True); _r2.raise_for_status(); cache_path.write_bytes(_r2.content); return _R(content=_r2.content,media_type="image/webp")
 
 # ── App assembly ────────────────────────────────────────────────────────
 
