@@ -151,8 +151,28 @@ def _ai_translate(text: str) -> str:
         pass
     return text
 
+def _ai_translate_with_config(text: str, cfg: dict) -> str:
+    """Translate using API config from frontend settings."""
+    try:
+        url = cfg.get("url", "https://api.deepseek.com/v1/chat/completions")
+        model = cfg.get("model", "deepseek-chat")
+        key = cfg.get("key", "")
+        h = {"Content-Type": "application/json"}
+        if key:
+            h["Authorization"] = f"Bearer {key}"
+        import httpx
+        r = httpx.post(url, json={"model": model, "messages": [{"role": "user", "content": f"Translate this Chinese anime/game character name to English. Return ONLY the English name: {text}"}], "stream": False}, headers=h, timeout=15)
+        if r.status_code == 200:
+            result = r.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+            if result:
+                return result.strip()
+    except Exception:
+        pass
+    return text
+
 
 def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
+    """Find English name for Chinese query. Supports frontend AI config."""
     if api_config:
         return _ai_translate_with_config(query, api_config)
     """Find English name for Chinese query. CN_MAP first, then translation API."""
