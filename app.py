@@ -1073,10 +1073,6 @@ async def api_image(request):
     url = request.query_params.get("url", "")
     if not url:
         return JSONResponse({"error": "url required"}, status_code=400)
-    # URL decode once (browser already %-encodes; Starlette auto-decodes query params, 
-    # but if the URL itself contains %, it gets double-encoded by encodeURIComponent)
-    from urllib.parse import unquote
-    url = unquote(url)  # ensure clean URL
     from hashlib import md5
     from pathlib import Path
     import mimetypes
