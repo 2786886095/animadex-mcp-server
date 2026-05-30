@@ -886,7 +886,7 @@ function search(){
       if(!resultsData.length){st.innerHTML=s;el.innerHTML='<div class="error">😕 未找到 &quot;'+q+'&quot; 的结果'+(/[一-鿿]/.test(q)?'<br><small>💡 试试英文名搜索，如: raiden shogun, hu tao, genshin impact</small>':'')+'</div>';return}
       st.innerHTML=s;
       el.innerHTML=resultsData.map(function(r,i){
-        var img=r.thumb_url||'',trigger=(r.trigger||'').replace(/"/g,'&quot;');
+        var img=(r.thumb_url||'').replace(/%3A/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
         return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
       }).join('');
