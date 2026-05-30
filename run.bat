@@ -35,15 +35,15 @@ if %WAIT_COUNT% geq 15 (
     goto OPEN_BROWSER
 )
 :: 检查端口是否已监听
-netstat -an | findstr "11451" >nul 2>&1
+netstat -an | findstr "11452" >nul 2>&1
 if errorlevel 1 goto WAIT_LOOP
 
 :OPEN_BROWSER
 echo [信息] 服务已启动！
 echo.
-echo        http://127.0.0.1:11451
+echo        http://127.0.0.1:11452
 echo.
-start "" http://127.0.0.1:11451
+start "" http://127.0.0.1:11452
 
 :: 保持窗口打开，显示实时日志
 echo [信息] 按 Ctrl+C 停止服务，或直接关闭窗口
