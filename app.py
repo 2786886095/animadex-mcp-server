@@ -1057,21 +1057,18 @@ async def api_image(request):
     if cache_path.exists():
         from starlette.responses import FileResponse
         return FileResponse(str(cache_path), media_type="image/webp")
-    # Also check animadex-data characters thumbs (trigger-based filenames)
+    # Check animadex-data (characters, artists, copyrights)
     from urllib.parse import unquote
     fname = unquote(url.rsplit("/", 1)[-1].split("?")[0])
-    # Try exact match
-    ad_path = Path(ANIMADEX_DATA) / "characters" / "thumbs" / fname
-    if ad_path.exists():
-        from starlette.responses import FileResponse
-        return FileResponse(str(ad_path), media_type="image/webp")
-    # Try with colon -> underscore replacement (animadex-data uses _ instead of :)
     fname2 = fname.replace(":", "_").replace("%3A", "_")
-    if fname2 != fname:
-        ad_path2 = Path(ANIMADEX_DATA) / "characters" / "thumbs" / fname2
-        if ad_path2.exists():
-            from starlette.responses import FileResponse
-            return FileResponse(str(ad_path2), media_type="image/webp")
+    for sub in ("characters", "artists", "copyrights"):
+        for fn in (fname, fname2):
+            if fn == fname2 and fn == fname:
+                continue
+            ad_path = Path(ANIMADEX_DATA) / sub / "thumbs" / fn
+            if ad_path.exists():
+                from starlette.responses import FileResponse
+                return FileResponse(str(ad_path), media_type="image/webp")
     try:
         r = _client.get(url, timeout=30)
         if r.status_code == 200:
