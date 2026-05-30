@@ -838,12 +838,19 @@ function detectModels(){
       var models=(d.data||d.models||[]).map(function(m){return m.id||m.name}).filter(Boolean);
       if(!models.length){el.innerHTML='❌ 未获取到模型';el.style.color='#f06060';return}
       var sel=document.getElementById('ai_model');
-      sel.innerHTML='<option value="">选择模型...</option>';
+      sel.innerHTML='';
       models.forEach(function(m){
         var o=document.createElement('option');
         o.value=m;o.textContent=m;sel.appendChild(o);
       });
-      el.innerHTML='✅ 检测到 '+models.length+' 个模型';el.style.color='#4ade80';
+      // Auto-select first model and save
+      sel.selectedIndex=0;
+      el.innerHTML='✅ 已选择 '+models[0]+'（已自动保存）';el.style.color='#4ade80';
+      // Auto-save
+      var ls=window.localStorage;
+      ls.setItem('ad_model',sel.value);
+      ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
+      ls.setItem('ad_key',document.getElementById('ai_key').value);
     })
     .catch(function(e){el.innerHTML='❌ 检测失败: '+e.message;el.style.color='#f06060'});
 }
