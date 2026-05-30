@@ -280,17 +280,14 @@ def _ai_translate_with_config(text: str, cfg: dict) -> str:
 
 
 def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
-    """Find English name for Chinese query. Supports frontend AI config."""
-    if api_config:
-        return _ai_translate_with_config(query, api_config)
-    """Find English name for Chinese query. CN_MAP first, then translation API."""
+    """Find English name for Chinese query. Fast paths first, then AI."""
     q = query.strip().lower()
 
-    # 1. CN_MAP exact
+    # 1. CN_MAP exact (instant)
     if q in CN_MAP:
         return CN_MAP[q]
 
-    # 2. CN_MAP partial
+    # 2. CN_MAP partial (instant)
     for cn, en in CN_MAP.items():
         if cn in q or q in cn:
             return en
@@ -299,7 +296,27 @@ def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
     if all(ord(c) < 128 for c in q):
         return None
 
-    # 4. Translate via API
+    # 4. Try local character index (fast, no network)
+    if CHAR_SLUGS:
+        cn_chars = set(q)
+        best_score, best_en = 0.0, None
+        for eng_name in CHAR_SLUGS:
+            common = cn_chars & set(eng_name.lower().replace("_", " ").replace("(", "").replace(")", ""))
+            union = cn_chars | set(eng_name.lower().replace("_", " ").replace("(", "").replace(")", ""))
+            score = len(common) / max(len(union), 1)
+            if score > best_score:
+                best_score = score
+                best_en = eng_name
+        if best_score >= 0.3:
+            return best_en
+
+    # 5. AI translation (slow, cached after first use)
+    if api_config:
+        result = _ai_translate_with_config(query, api_config)
+        if result and result != q:
+            return result.lower()
+
+    # 6. Google Translate fallback
     translated = _cn_to_en_via_api(q)
     if translated and translated != q and translated.strip():
         return translated.strip().lower()
