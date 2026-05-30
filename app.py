@@ -246,13 +246,18 @@ def _ai_translate(text: str) -> str:
             data = r.json()
             result = data.get("response", "") or data.get("choices", [{}])[0].get("message", {}).get("content", "")
             if result:
-                return result.strip()
+                result = result.strip()
+                _TRANS_CACHE[text] = result
+                return result
     except Exception:
         pass
+    _TRANS_CACHE[text] = text
     return text
 
 def _ai_translate_with_config(text: str, cfg: dict) -> str:
-    """Translate using API config from frontend settings."""
+    """Translate using API config from frontend settings. Cached."""
+    if text in _TRANS_CACHE:
+        return _TRANS_CACHE[text]
     try:
         url = cfg.get("url", "https://api.deepseek.com/v1/chat/completions")
         model = cfg.get("model", "deepseek-chat")
@@ -261,13 +266,16 @@ def _ai_translate_with_config(text: str, cfg: dict) -> str:
         if key:
             h["Authorization"] = f"Bearer {key}"
         import httpx
-        r = httpx.post(url, json={"model": model, "messages": [{"role": "user", "content": f"Translate this Chinese anime/game character name to English. Return ONLY the English name: {text}"}], "stream": False}, headers=h, timeout=15)
+        r = httpx.post(url, json={"model": model, "messages": [{"role": "user", "content": f"Translate this Chinese anime/game character name to English. Return ONLY the English name: {text}"}], "stream": False}, headers=h, timeout=10)
         if r.status_code == 200:
             result = r.json().get("choices", [{}])[0].get("message", {}).get("content", "")
             if result:
-                return result.strip()
+                result = result.strip()
+                _TRANS_CACHE[text] = result
+                return result
     except Exception:
         pass
+    _TRANS_CACHE[text] = text
     return text
 
 
