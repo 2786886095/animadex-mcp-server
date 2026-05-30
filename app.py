@@ -885,7 +885,7 @@ function search(){
       el.innerHTML=resultsData.map(function(r,i){
         var img=r.thumb_url||'',trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
-        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
+        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="/api/image?url='+img+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
       }).join('');
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
@@ -897,34 +897,60 @@ function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
+  var ls=window.localStorage;
+  function g(k,d){return ls.getItem('ad_'+k)||d}
   var o=document.createElement('div');
   o.className='detail-overlay open';
-  o.style.display='flex';
   o.onclick=function(e){if(e.target===o)o.remove()};
-  o.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body">'
-  +'<h3 style="margin-bottom:16px">🔌 API 信息</h3>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">MCP 地址 (Claude Code)</div>'
-  +'<code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code>'
+  o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
+  +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
+  +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
+  +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
+  +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译（默认）</option>'
+  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译</option>'
+  +'</select></div>'
+  +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
+  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
+  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
+  +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
+  +(g('model','')?'<option value="'+g('model','')+'" selected>'+g('model','')+'</option>':'<option value="">点击「检测模型」获取列表</option>')
+  +'</select></div>'
+  +'<input id="ai_model_custom" style="width:100%;margin-top:6px;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none;display:none" placeholder="自定义模型名">'
+  +'<div style="display:flex;gap:6px;margin-top:6px">'
+  +'<button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button>'
+  +'<button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button>'
   +'</div>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">REST API 端点</div>'
-  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/search?q=角色名&mode=characters</code>'
-  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/character?slug=角色slug</code>'
+  +'<div id="ai_test_result" style="font-size:12px;margin-top:6px"></div>'
   +'</div>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">翻译方式</div>'
-  +'<div style="color:#aaa;font-size:12px">当前使用 Google 翻译</div>'
-  +'</div>'
+  +'<button onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">💾 保存</button>'
   +'</div><button class="detail-close" onclick="closeSettings()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
   document.body.appendChild(o);
+  document.getElementById('ai_sel').onchange=function(){
+    document.getElementById('ai_config').style.display=this.value==='ai'?'block':'none';
+  };
 }
 function closeSettings(){
   var o=document.querySelector('.detail-overlay.open');
   if(o)o.remove();
 }
+function saveAiSettings(){
+  var ls=window.localStorage;
+  ls.setItem('ad_mode',document.getElementById('ai_sel').value);
+  ls.setItem('ad_url',document.getElementById('ai_url').value);
+  ls.setItem('ad_key',document.getElementById('ai_key').value);
+  ls.setItem('ad_model',document.getElementById('ai_model').value);
+  closeSettings();
+  if(document.getElementById('q').value) search();
+}
 function getAiParams(){
-  return '';
+  var ls=window.localStorage;
+  if(ls.getItem('ad_mode')!=='ai')return'';
+  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com')
+    +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
+    +'&ai_model='+encodeURIComponent(ls.getItem('ai_model')||'deepseek-chat');
 }function getModelVal(){
   var sel=document.getElementById('ai_model');
   return sel.value;
@@ -1012,7 +1038,7 @@ function openDetail(slug){
   fetch('/api/character?slug='+encodeURIComponent(slug)).then(function(r){return r.json()}).then(function(ch){
     if(ch.error){overlay.innerHTML='<div class="detail-panel"><div class="error">'+ch.error+'</div><button class="detail-close" onclick="closeDetail()">关闭 ✕</button></div>';return}
     var tags=(ch.tags||[]).join(', '),trigger=ch.trigger||'',img=ch.img_url||ch.thumb_url||'',loras=ch.loras||[],html='';
-    html+=img?'<img class="detail-img" src="/api/image?url='+encodeURIComponent(img)+'" alt="" onclick="window.open(this.src)">':'';
+    html+=img?'<img class="detail-img" src="/api/image?url='+img+'" alt="" onclick="window.open(this.src)">':'';
     html+='<div class="detail-body"><div class="detail-box"><div class="detail-label">🎯 角色标签 (Trigger)</div><div class="detail-text" id="dt-'+slug+'">'+trigger+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dt-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">🏷️ 特征标签 (Tags)</div><div class="detail-text tags" id="dtg-'+slug+'">'+tags+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'dtg-'+slug+'\',this)">📋 复制</button></div></div>';
     html+='<div class="detail-box"><div class="detail-label">📋 全部</div><div class="detail-text" style="display:none" id="df-'+slug+'">'+(trigger+', '+tags).replace(/</g,'&lt;')+'</div><div class="detail-copy-row"><button class="detail-copy-btn" onclick="dc(\'df-'+slug+'\',this)">📋 复制全部</button></div></div>';
