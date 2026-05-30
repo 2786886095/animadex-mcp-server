@@ -900,6 +900,13 @@ function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
+  if(!(location.hostname==='127.0.0.1'||location.hostname==='localhost')){
+    var o2=document.createElement('div');
+    o2.className='detail-overlay open';
+    o2.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body"><h3 style="margin-bottom:16px">🔌 API 信息</h3><div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">MCP 地址</div><code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code></div><div style="background:#0d0d1a;border-radius:8px;padding:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">翻译方式</div><div style="color:#aaa;font-size:12px">Google 翻译</div></div></div><button onclick="this.parentElement.parentElement.remove()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
+    document.body.appendChild(o2);
+    return;
+  }
   var ls=window.localStorage;
   function g(k,d){return ls.getItem('ad_'+k)||d}
   var o=document.createElement('div');
