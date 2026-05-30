@@ -994,13 +994,7 @@ function saveAiSettings(){
     setTimeout(function(){if(document.getElementById('q').value) search()},100);
   }catch(e){alert('保存失败: '+e.message);}
 }
-function getAiParams(){
-  var ls=window.localStorage;
-  if(ls.getItem('ad_mode')!=='ai')return'';
-  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com/v1/chat/completions')
-    +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
-    +'&ai_model='+encodeURIComponent(ls.getItem('ad_model')||'deepseek-chat');
-}function saveAiSettings(){
+function saveAiSettings(){
   var ls=window.localStorage||{};
   ls.setItem('ad_mode',document.getElementById('ai_sel').value);
   ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
