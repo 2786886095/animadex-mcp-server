@@ -1041,7 +1041,7 @@ var qp=new URLSearchParams(location.search);if(qp.get('q')){document.getElementB
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 os.makedirs(os.path.join(CACHE_DIR, "thumbs"), exist_ok=True)
 
-ANIMADEX_DATA = os.environ.get("ANIMADEX_DATA", "/f/AI/picture/animadex-data")
+ANIMADEX_DATA = os.environ.get("ANIMADEX_DATA", "F:/AI/picture/animadex-data")
 
 async def api_image(request):
     url = request.query_params.get("url", "")
@@ -1057,13 +1057,21 @@ async def api_image(request):
     if cache_path.exists():
         from starlette.responses import FileResponse
         return FileResponse(str(cache_path), media_type="image/webp")
-    # Also check animadex-data characters thumbs
+    # Also check animadex-data characters thumbs (trigger-based filenames)
     from urllib.parse import unquote
-    fname = unquote(url.rsplit("/", 1)[-1].split("?")[0].replace("%2C", ","))
+    fname = unquote(url.rsplit("/", 1)[-1].split("?")[0])
+    # Try exact match
     ad_path = Path(ANIMADEX_DATA) / "characters" / "thumbs" / fname
     if ad_path.exists():
         from starlette.responses import FileResponse
         return FileResponse(str(ad_path), media_type="image/webp")
+    # Try with colon -> underscore replacement (animadex-data uses _ instead of :)
+    fname2 = fname.replace(":", "_").replace("%3A", "_")
+    if fname2 != fname:
+        ad_path2 = Path(ANIMADEX_DATA) / "characters" / "thumbs" / fname2
+        if ad_path2.exists():
+            from starlette.responses import FileResponse
+            return FileResponse(str(ad_path2), media_type="image/webp")
     try:
         r = _client.get(url, timeout=30)
         if r.status_code == 200:
