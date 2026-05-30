@@ -915,7 +915,7 @@ function showSettings(){
   +'<div style="color:#888;margin-bottom:4px">翻译方式</div>'
   +'<div style="color:#aaa;font-size:12px">当前使用 Google 翻译</div>'
   +'</div>'
-  +'</div><button class="detail-close" onclick="this.closest('.detail-overlay').remove()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
+  +'</div><button class="detail-close" onclick="closeSettings()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
   document.body.appendChild(o);
 }
 function closeSettings(){
