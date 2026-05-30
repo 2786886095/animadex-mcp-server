@@ -45,6 +45,8 @@ CHAR_INDEX: dict[str, str] = {}
 CHAR_SLUGS: dict[str, list[str]] = {}
 LOCAL_DB = None
 LOCAL_READY = False
+API_CACHE: dict[str, dict] = {}
+import hashlib as _hl
 
 
 
@@ -96,10 +98,15 @@ def _init_local_db():
             slug = row.get("character") or row.get("slug") or ""
             if not slug:
                 continue
+            trigger = row.get("trigger", "")
+            # Generate thumb_url from trigger
+            from urllib.parse import quote
+            trigger_enc = quote(trigger, safe='()')
+            thumb_url = f"https://blobs.animadex.net/Outputs/thumbs/{trigger_enc}.webp"
             conn.execute("INSERT OR REPLACE INTO characters (slug,name,trigger,tags,copyright,copyright_name,count,thumb_url,img_url) VALUES (?,?,?,?,?,?,?,?,?)",
-                (slug, row.get("name", slug.replace("_"," ").title()), row.get("trigger",""),
+                (slug, row.get("name", slug.replace("_"," ").title()), trigger,
                  row.get("tags",""), row.get("copyright",""), row.get("copyright_name",""),
-                 int(row.get("count",0)), row.get("thumb_url",""), row.get("img_url","")))
+                 int(row.get("count",0)), thumb_url, ""))
             count += 1
             if count % 5000 == 0:
                 conn.commit()
@@ -301,7 +308,11 @@ def cn_search(query: str, mode: str = "characters", page: int = 1, sort: str = "
             data = _local_search(search_q, mode, page)
             data["translated"] = translated if translated and translated != query else None
             if data["total"] > 0:
-                return data
+                # Check if results have thumbnails
+                has_thumbs = any(r.get("thumb_url") for r in data.get("results", []))
+                if has_thumbs:
+                    return data
+                # No thumbnails in local DB, try API for richer data
         except:
             pass
     try:
@@ -1114,6 +1125,27 @@ def _precache_thumbs():
                 pass
         if cached:
             print(f"[cache] Pre-cached {cached} thumbnails")
+        # Also try to cache thumbnails from the local DB for popular chars
+        if LOCAL_DB:
+            try:
+                cur = LOCAL_DB.cursor()
+                cur.execute("SELECT thumb_url FROM characters ORDER BY count DESC LIMIT 500")
+                for row in cur.fetchall():
+                    url = row[0] if row else ""
+                    if not url:
+                        continue
+                    fname = _hl.md5(url.encode()).hexdigest() + ".webp"
+                    fpath = thumb_dir / fname
+                    if fpath.exists():
+                        continue
+                    try:
+                        resp = _client.get(url, timeout=5)
+                        if resp.status_code == 200:
+                            fpath.write_bytes(resp.content)
+                    except:
+                        pass
+            except:
+                pass
     except:
         pass
 
