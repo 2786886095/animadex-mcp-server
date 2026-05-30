@@ -844,13 +844,10 @@ function saveAiSettings(){
   ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
   ls.setItem('ad_key',document.getElementById('ai_key').value);
   ls.setItem('ad_model',getModelVal());
-  var btn=document.querySelector('.detail-overlay.open .detail-copy-btn');
-  btn.textContent='✅ 已保存';btn.style.background='#4ade80';
-  setTimeout(function(){
-    document.querySelector('.detail-overlay.open').remove();
-    // Reload to apply
-    if(document.getElementById('q').value) search();
-  },800);
+  // Close settings and re-search
+  var ov=document.querySelector('.detail-overlay.open');
+  if(ov) ov.remove();
+  if(document.getElementById('q').value) search();
 }
 function getAiParams(){
   var ls=window.localStorage||{};
