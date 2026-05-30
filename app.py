@@ -22,7 +22,7 @@ AI_TRANSLATE_URL = os.environ.get("ANIMADEX_AI_TRANSLATE_URL", "")
 AI_TRANSLATE_MODEL = os.environ.get("ANIMADEX_AI_MODEL", "qwen2.5:7b")
 AI_API_KEY = os.environ.get("ANIMADEX_AI_API_KEY", "")
 
-_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=httpx.Timeout(API_TIMEOUT, connect=5), verify=False)
+_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=httpx.Timeout(API_TIMEOUT, connect=3), verify=False)
 
 server = FastMCP("AnimaDex", instructions="Query animadex.net characters, artists and series data",
                  transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
@@ -41,11 +41,103 @@ def _get(path: str, **params) -> dict:
 # ── Full character name index ──────────────────────────────────────────
 # Populated on startup by fetching the export manifest + index.
 
-CHAR_INDEX: dict[str, str] = {}       # slug → name
-CHAR_SLUGS: dict[str, list[str]] = {}  # lowercase_name → [slug, ...]
+CHAR_INDEX: dict[str, str] = {}
+CHAR_SLUGS: dict[str, list[str]] = {}
+LOCAL_DB = None
+LOCAL_READY = False
+
+
+
+def _init_local_db():
+    """Download full CSV and build SQLite DB for offline search."""
+    global LOCAL_DB, LOCAL_READY
+    import sqlite3, csv, io, time
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", "animadex.db")
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+    if os.path.exists(db_path) and (time.time() - os.path.getmtime(db_path)) < 86400:
+        try:
+            LOCAL_DB = sqlite3.connect(db_path, check_same_thread=False)
+            LOCAL_DB.execute("SELECT COUNT(*) FROM characters")
+            print(f"[local] Using cached DB ({os.path.getsize(db_path)//1024} KB)")
+            LOCAL_READY = True
+            return
+        except:
+            pass
+
+    print("[local] Downloading character database...")
+    try:
+        h = {"X-Export-Token": EXPORT_TOKEN}
+        r = _client.get("/api/export/manifest", headers=h, timeout=30)
+        if r.status_code != 200:
+            return
+        man = r.json()
+        csv_url = man.get("csv", {}).get("characters", "")
+        if not csv_url:
+            return
+
+        r2 = _client.get(csv_url, timeout=120)
+        if r2.status_code != 200:
+            return
+
+        reader = csv.DictReader(io.StringIO(r2.text))
+        conn = sqlite3.connect(db_path)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("""CREATE TABLE IF NOT EXISTS characters (
+            slug TEXT PRIMARY KEY, name TEXT, trigger TEXT, tags TEXT,
+            copyright TEXT, copyright_name TEXT, count INTEGER DEFAULT 0,
+            thumb_url TEXT, img_url TEXT
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_name ON characters(name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_trig ON characters(trigger)")
+
+        count = 0
+        for row in reader:
+            slug = row.get("character") or row.get("slug") or ""
+            if not slug:
+                continue
+            conn.execute("INSERT OR REPLACE INTO characters (slug,name,trigger,tags,copyright,copyright_name,count,thumb_url,img_url) VALUES (?,?,?,?,?,?,?,?,?)",
+                (slug, row.get("name", slug.replace("_"," ").title()), row.get("trigger",""),
+                 row.get("tags",""), row.get("copyright",""), row.get("copyright_name",""),
+                 int(row.get("count",0)), row.get("thumb_url",""), row.get("img_url","")))
+            count += 1
+            if count % 5000 == 0:
+                conn.commit()
+                print(f"[local] ... {count}")
+        conn.commit()
+        print(f"[local] Loaded {count} characters")
+        LOCAL_DB = conn
+        LOCAL_READY = True
+    except Exception as e:
+        print(f"[local] DB build failed: {e}")
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
+
+def _local_search(q, mode="characters", page=1, page_size=36):
+    """Search local SQLite database."""
+    global LOCAL_DB
+    if LOCAL_DB is None:
+        return {"total": 0, "results": []}
+    try:
+        cur = LOCAL_DB.cursor()
+        like = f"%{q.lower()}%"
+        cur.execute("SELECT slug,name,trigger,tags,copyright_name,count,thumb_url,img_url FROM characters WHERE LOWER(name) LIKE ? OR LOWER(trigger) LIKE ? OR LOWER(copyright_name) LIKE ? ORDER BY count DESC LIMIT ? OFFSET ?",
+            (like, like, like, page_size, (page-1)*page_size))
+        rows = cur.fetchall()
+        cur.execute("SELECT COUNT(*) FROM characters WHERE LOWER(name) LIKE ? OR LOWER(trigger) LIKE ? OR LOWER(copyright_name) LIKE ?", (like, like, like))
+        total = cur.fetchone()[0]
+        results = []
+        for r in rows:
+            tags_list = [t.strip() for t in (r[3] or "").split(",") if t.strip()]
+            results.append({"slug":r[0],"name":r[1],"trigger":r[2],"tags":tags_list,"copyright_name":r[4] or "","count":r[5] or 0,"thumb_url":r[6] or "","img_url":r[7] or "","rating":{"up":0,"down":0},"fav_count":0})
+        return {"total":total,"results":results,"page":page,"page_size":page_size,"pages":max(1,(total+page_size-1)//page_size)}
+    except Exception as e:
+        return {"total":0,"results":[],"error":str(e)}
 
 
 def _build_index():
+
     global BASE_URL
     # Check if Chinese users need a mirror
     if os.environ.get("ANIMADEX_MIRROR"):
@@ -201,9 +293,17 @@ def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
 
 
 def cn_search(query: str, mode: str = "characters", page: int = 1, sort: str = "count", api_config: dict | None = None) -> dict:
-    """Search with Chinese name support."""
+    """Search with Chinese name support. Uses local DB when possible."""
     translated = _match_chinese(query, api_config)
     search_q = translated if translated else query
+    if mode == "characters" and LOCAL_READY:
+        try:
+            data = _local_search(search_q, mode, page)
+            data["translated"] = translated if translated and translated != query else None
+            if data["total"] > 0:
+                return data
+        except:
+            pass
     try:
         data = _get(f"/api/{mode}/search", q=search_q, page=page, sort=sort)
         data["translated"] = translated if translated and translated != query else None
@@ -987,15 +1087,44 @@ app = Starlette(routes=[
     Mount("/", app=mcp_sse_app),
 ])
 
-if __name__ == "__main__":
-    import uvicorn
+def _precache_thumbs():
+    import hashlib, pathlib
+    try:
+        thumb_dir = pathlib.Path(CACHE_DIR) / "thumbs"
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        data = _get("/api/characters/search", q="", page=1, sort="count")
+        results = data.get("results", [])
+        if not results:
+            return
+        cached = 0
+        for r in results[:108]:
+            url = r.get("thumb_url", "")
+            if not url:
+                continue
+            fname = hashlib.md5(url.encode()).hexdigest() + ".webp"
+            fpath = thumb_dir / fname
+            if fpath.exists():
+                continue
+            try:
+                resp = _client.get(url, timeout=10)
+                if resp.status_code == 200:
+                    fpath.write_bytes(resp.content)
+                    cached += 1
+            except:
+                pass
+        if cached:
+            print(f"[cache] Pre-cached {cached} thumbnails")
+    except:
+        pass
 
-    # Build full character index BEFORE starting the server (synchronous)
-    print("╔══════════════════════════════╗")
-    print("║   AnimaDex Server Starting  ║")
-    print("║   Loading 36,492 chars...   ║")
-    print("╚══════════════════════════════╝")
+
+if __name__ == "__main__":
+    import uvicorn, time, threading
+
+    print("\n=== AnimaDex Server Starting ===\n")
+    _init_local_db()
     _build_index()
 
     port = int(os.environ.get("PORT", 11451))
+    threading.Thread(target=_precache_thumbs, daemon=True).start()
     uvicorn.run(app, host="0.0.0.0", port=port)
