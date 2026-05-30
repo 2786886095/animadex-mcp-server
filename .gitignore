@@ -4,3 +4,4 @@ __pycache__/
 .env
 server.log
 cache/
+!cache/thumbs/
