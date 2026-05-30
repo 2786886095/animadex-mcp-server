@@ -152,7 +152,9 @@ def _ai_translate(text: str) -> str:
     return text
 
 
-def _match_chinese(query: str) -> str | None:
+def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
+    if api_config:
+        return _ai_translate_with_config(query, api_config)
     """Find English name for Chinese query. CN_MAP first, then translation API."""
     q = query.strip().lower()
 
@@ -177,9 +179,9 @@ def _match_chinese(query: str) -> str | None:
     return None
 
 
-def cn_search(query: str, mode: str = "characters", page: int = 1, sort: str = "count") -> dict:
+def cn_search(query: str, mode: str = "characters", page: int = 1, sort: str = "count", api_config: dict | None = None) -> dict:
     """Search with Chinese name support."""
-    translated = _match_chinese(query)
+    translated = _match_chinese(query, api_config)
     search_q = translated if translated else query
     try:
         data = _get(f"/api/{mode}/search", q=search_q, page=page, sort=sort)
@@ -687,7 +689,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 <body>
 <div id="loadingScreen"><div class="spinner"></div><p>搜索中…</p></div>
 <div class="container">
-  <header style="position:relative"><div style="flex:1"><h1>✦ AnimaDex</h1><small>支持中文/英文名 · 点击多选 · 批量复制</small></div><button onclick="showAPI()" style="background:none;border:1px solid #444;color:#888;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px" title="API 信息">🔌 API</button></header>
+  <header style="position:relative"><div style="flex:1"><h1>✦ AnimaDex</h1><small>支持中文/英文名 · 点击多选 · 批量复制</small></div><button onclick="showSettings()" style="background:none;border:1px solid #444;color:#888;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px" title="API 信息">⚙️</button></header>
   <div class="search-bar">
     <input id="q" type="text" placeholder="角色名 / 系列名 / 画师名…" autofocus>
     <select id="mode"><option value="characters">角色</option><option value="artists">画师</option><option value="copyrights">系列</option></select>
@@ -712,7 +714,7 @@ function search(){
   var el=document.getElementById('results'),st=document.getElementById('stats');
   if(!q){el.innerHTML='<div class="error">请输入搜索关键词</div>';st.textContent='';return}
   document.getElementById('loadingScreen').classList.add('show');st.textContent='';selected={};updateSelBar();el.innerHTML='';
-  fetch('/api/search?q='+encodeURIComponent(q)+'&mode='+mode+'&page=1&sort=count')
+  fetch('/api/search?q='+encodeURIComponent(q)+'&mode='+mode+'&page=1&sort=count'+getAiParams())
     .then(function(r){return r.json()})
     .then(function(d){
       document.getElementById('loadingScreen').classList.remove('show');
@@ -736,20 +738,58 @@ function copySel(t){var is=Object.keys(selected).sort(function(a,b){return a-b})
 function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===slug});if(!r)return;var text='';if(t==='trigger')text=r.trigger||'';else if(t==='tags')text=(r.tags||[]).join(', ');else text=(r.trigger||'')+', '+(r.tags||[]).join(', ');var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},1500)}).catch(function(){prompt('复制失败:',text)})}
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
-function showAPI(){
+function showSettings(){
+  var ls=window.localStorage||{};
+  function g(k,d){return ls.getItem('ad_'+k)||d}
+  function s(k,v){ls.setItem('ad_'+k,v)}
   var o=document.createElement('div');o.className='detail-overlay';o.style.display='flex';o.onclick=function(e){if(e.target===o)o.remove()};
-  o.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body"><h3 style="margin-bottom:12px">🔌 AnimaDex API</h3>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">MCP Server (Claude Code)</div>'
-  +'<code style="color:#f0c060;word-break:break-all">'+window.location.origin+'/sse</code>'
+  o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
+  +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
+  +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
+  +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
+  +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译（默认）</option>'
+  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译（需配置下方信息）</option>'
+  +'</select></div>'
+  +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
+  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com/v1/chat/completions')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
+  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
+  +'<input id="ai_model" value="'+g('model','deepseek-chat')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
   +'</div>'
   +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
-  +'<div style="color:#888;margin-bottom:4px">REST API 端点</div>'
-  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/search?q=角色名&mode=characters</code>'
-  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/character?slug=角色slug</code>'
+  +'<div style="color:#888;margin-bottom:4px">🔌 MCP 地址</div>'
+  +'<code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code>'
   +'</div>'
-  +'</div><button class="detail-close" onclick="this.closest(".detail-overlay").remove()">关闭 ✕</button></div>';
+  +'<button class="detail-copy-btn" onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">💾 保存</button>'
+  +'</div><button class="detail-close" onclick="this.closest(\".detail-overlay\").remove()">关闭 ✕</button></div>';
   document.body.appendChild(o);
+  // Show/hide AI config based on selection
+  document.getElementById('ai_sel').onchange=function(){
+    document.getElementById('ai_config').style.display=this.value==='ai'?'block':'none';
+  };
+}
+function saveAiSettings(){
+  var ls=window.localStorage||{};
+  ls.setItem('ad_mode',document.getElementById('ai_sel').value);
+  ls.setItem('ad_url',document.getElementById('ai_url').value);
+  ls.setItem('ad_key',document.getElementById('ai_key').value);
+  ls.setItem('ad_model',document.getElementById('ai_model').value);
+  var btn=document.querySelector('.detail-overlay.open .detail-copy-btn');
+  btn.textContent='✅ 已保存';btn.style.background='#4ade80';
+  setTimeout(function(){
+    document.querySelector('.detail-overlay.open').remove();
+    // Reload to apply
+    if(document.getElementById('q').value) search();
+  },800);
+}
+function getAiParams(){
+  var ls=window.localStorage||{};
+  if(ls.getItem('ad_mode')!=='ai')return'';
+  return'&ai_url='+encodeURIComponent(ls.getItem('ad_url')||'https://api.deepseek.com/v1/chat/completions')
+    +'&ai_key='+encodeURIComponent(ls.getItem('ad_key')||'')
+    +'&ai_model='+encodeURIComponent(ls.getItem('ai_model')||'deepseek-chat');
 }
 var overlay=null;
 function openDetail(slug){
@@ -820,8 +860,13 @@ async def api_search(request):
     mode = request.query_params.get("mode", "characters")
     page = int(request.query_params.get("page", "1"))
     sort = request.query_params.get("sort", "count")
+    # Frontend AI config
+    ai_url = request.query_params.get("ai_url", "")
+    ai_key = request.query_params.get("ai_key", "")
+    ai_model = request.query_params.get("ai_model", "")
+    api_config = {"url": ai_url, "key": ai_key, "model": ai_model} if ai_url else None
     try:
-        data = cn_search(q, mode, page, sort)
+        data = cn_search(q, mode, page, sort, api_config)
         return JSONResponse(data)
     except Exception as e:
         return JSONResponse({"error": str(e), "results": [], "total": 0}, status_code=500)
