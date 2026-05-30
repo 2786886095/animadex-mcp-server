@@ -743,8 +743,7 @@ function showSettings(){
   function g(k,d){return ls.getItem('ad_'+k)||d}
   function s(k,v){ls.setItem('ad_'+k,v)}
   var o=document.createElement('div');
-  o.className='detail-overlay';
-  o.style.display='flex';
+  o.className='detail-overlay open';
   o.onclick=function(e){if(e.target===o)o.remove()};
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
@@ -836,7 +835,7 @@ function saveAiSettings(){
     ls.setItem('ad_key',document.getElementById('ai_key').value);
     ls.setItem('ad_model',document.getElementById('ai_model').value);
     closeSettings();
-    if(document.getElementById('q').value) search();
+    setTimeout(function(){if(document.getElementById('q').value) search()},100);
   }catch(e){alert('保存失败: '+e.message);}
 }
 function getAiParams(){
