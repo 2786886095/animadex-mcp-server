@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "F:\AI\picture\animadex-local\app.py", line 13, in <module>
-    from mcp.server.fastmcp import FastMCP
-ModuleNotFoundError: No module named 'mcp'
