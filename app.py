@@ -896,44 +896,35 @@ function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
-  var ls=window.localStorage;
-  function g(k,d){return ls.getItem('ad_'+k)||d}
-  function s(k,v){ls.setItem('ad_'+k,v)}
   var o=document.createElement('div');
   o.className='detail-overlay open';
+  o.style.display='flex';
   o.onclick=function(e){if(e.target===o)o.remove()};
-  o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
-  +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
-  +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
-  +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译</option>'
-  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译</option>'
-  +'</select></div>'
-  +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
-  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
-  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型（点击检测后选择）</div>'
-  +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +(g('model','')?('<option value="'+g('model','')+'" selected>'+g('model','')+'</option>'):'<option value="">点击「检测模型」获取列表</option>')
-  +'</select>'
+  o.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body">'
+  +'<h3 style="margin-bottom:16px">🔌 API 信息</h3>'
+  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
+  +'<div style="color:#888;margin-bottom:4px">MCP 地址 (Claude Code)</div>'
+  +'<code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code>'
   +'</div>'
-  +'<div style="display:flex;gap:6px;margin-bottom:10px">'
-  +'<button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button>'
-  +'<button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button>'
+  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
+  +'<div style="color:#888;margin-bottom:4px">REST API 端点</div>'
+  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/search?q=角色名&mode=characters</code>'
+  +'<code style="color:#aaa;display:block;margin:4px 0;font-size:11px">GET /api/character?slug=角色slug</code>'
   +'</div>'
-  +'<div id="ai_test_result" style="font-size:12px;margin-bottom:10px"></div>'
-  +'<button onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">💾 保存</button>'
-  +'<button onclick="closeSettings()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:transparent;color:#888;font-size:13px;cursor:pointer">关闭 ✕</button>'
-  +'</div></div>';
+  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;font-size:13px">'
+  +'<div style="color:#888;margin-bottom:4px">翻译方式</div>'
+  +'<div style="color:#aaa;font-size:12px">当前使用 Google 翻译</div>'
+  +'</div>'
+  +'</div><button class="detail-close" onclick="this.closest('.detail-overlay').remove()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
   document.body.appendChild(o);
-  // Toggle ai config
-  document.getElementById('ai_sel').onchange=function(){
-    document.getElementById('ai_config').style.display=this.value==='ai'?'block':'none';
-  };
 }
-function getModelVal(){
+function closeSettings(){
+  var o=document.querySelector('.detail-overlay.open');
+  if(o)o.remove();
+}
+function getAiParams(){
+  return '';
+}function getModelVal(){
   var sel=document.getElementById('ai_model');
   return sel.value;
 }
