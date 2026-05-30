@@ -868,6 +868,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 var selected={},resultsData=[],_cols=4;(function(){var bs=document.querySelectorAll(".col-btn");bs.forEach(function(b){b.addEventListener("click",function(){bs.forEach(function(x){x.classList.remove("on")});b.classList.add("on");var c=parseInt(b.dataset.c);if(c>0){_cols=c;document.getElementById("results").style.setProperty("--cols",c)}else{_cols=0;document.getElementById("results").style.setProperty("--cols","auto-fill");document.getElementById("results").style.gridTemplateColumns="repeat(auto-fill,minmax(240px,1fr))"}})})})();
 function search(){
   var q=document.getElementById('q').value.trim(),mode=document.getElementById('mode').value;
+  if(q) window.history.replaceState({},'',window.location.pathname+'?q='+encodeURIComponent(q)+'&mode='+mode);
   var el=document.getElementById('results'),st=document.getElementById('stats');
   if(!q){el.innerHTML='<div class="error">请输入搜索关键词</div>';st.textContent='';return}
   document.getElementById('loadingScreen').classList.add('show');st.textContent='';selected={};updateSelBar();el.innerHTML='';
@@ -1031,7 +1032,7 @@ function closeDetail(){if(overlay)overlay.classList.remove('open')}
 function dc(id,btn){var el=document.getElementById(id);if(!el)return;var t=el.textContent.trim(),o=btn.textContent;navigator.clipboard.writeText(t).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',t)})}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeDetail();clearSelection()}})
 document.getElementById('q').addEventListener('keydown',function(e){if(e.key==='Enter')search()})
-var qp=new URLSearchParams(location.search);if(qp.get('q')){document.getElementById('q').value=qp.get('q');search()}
+var qp=new URLSearchParams(location.search);if(qp.get('q')){document.getElementById('q').value=qp.get('q');if(qp.get('mode'))document.getElementById('mode').value=qp.get('mode');search()}
 </script>
 </body>
 </html>"""
