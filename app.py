@@ -13,7 +13,8 @@ from urllib.parse import quote as _url_enc
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
-BASE_URL = "https://animadex.net"
+BASE_URL = os.environ.get("ANIMADEX_API_BASE", "https://animadex.net")
+API_TIMEOUT = int(os.environ.get("ANIMADEX_API_TIMEOUT", "30"))
 USER_AGENT = "animadex-mcp/1"
 EXPORT_TOKEN = os.environ.get("ANIMADEX_TOKEN", "IPpCh4IE4iMAVaeuREs4WqiXynSti60pWAxpcd-nXRQ")
 TRANSLATOR = os.environ.get("ANIMADEX_TRANSLATOR", "google")
@@ -21,16 +22,20 @@ AI_TRANSLATE_URL = os.environ.get("ANIMADEX_AI_TRANSLATE_URL", "")
 AI_TRANSLATE_MODEL = os.environ.get("ANIMADEX_AI_MODEL", "qwen2.5:7b")
 AI_API_KEY = os.environ.get("ANIMADEX_AI_API_KEY", "")
 
-_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=30)
+_client = httpx.Client(base_url=BASE_URL, headers={"User-Agent": USER_AGENT}, timeout=API_TIMEOUT)
 
 server = FastMCP("AnimaDex", instructions="Query animadex.net characters, artists and series data",
                  transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False))
 
 
 def _get(path: str, **params) -> dict:
-    r = _client.get(path, params=params)
-    r.raise_for_status()
-    return r.json()
+    try:
+        r = _client.get(path, params=params)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        print(f"[api] Request failed: {e}")
+        raise
 
 
 # ── Full character name index ──────────────────────────────────────────
@@ -41,6 +46,11 @@ CHAR_SLUGS: dict[str, list[str]] = {}  # lowercase_name → [slug, ...]
 
 
 def _build_index():
+    global BASE_URL
+    # Check if Chinese users need a mirror
+    if os.environ.get("ANIMADEX_MIRROR"):
+        BASE_URL = os.environ["ANIMADEX_MIRROR"]
+        _client.base_url = BASE_URL
     """Fetch ALL character names and build a searchable index.
     Tries export index first, then falls back to the API character list."""
     try:
