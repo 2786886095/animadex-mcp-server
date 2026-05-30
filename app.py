@@ -1107,17 +1107,19 @@ async def api_image(request):
             return Response(content=r.content, media_type=r.headers.get("content-type", "image/webp"))
     except Exception:
         pass
-    # Try underscore version (CDN uses _ instead of :)
-    alt_url = url.replace("%3A", "_")
-    if alt_url != url:
+    # Try underscore + direct download
+    alt = url.replace("%3A", "_")
+    for u in (alt, url):
         try:
-            r = _client.get(alt_url, timeout=5)
+            r = _client.get(u, timeout=15)
             if r.status_code == 200:
+                cache_path.write_bytes(r.content)
                 from starlette.responses import Response
                 return Response(content=r.content, media_type="image/webp")
         except:
             pass
-        from starlette.responses import Response as _R; _r2=_client.get(url,timeout=15,follow_redirects=True); _r2.raise_for_status(); cache_path.write_bytes(_r2.content); return _R(content=_r2.content,media_type="image/webp")
+    from starlette.responses import Response
+    return Response(content=b"", status_code=204)
 
 # ── App assembly ────────────────────────────────────────────────────────
 
