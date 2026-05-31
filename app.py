@@ -881,7 +881,10 @@ function showPageNav(d){
   n.style.display='flex';
   var p=d.page||1,t=d.pages||1,h='';
   h+='<button onclick="searchPage('+(p-1)+')" '+(p<=1?'disabled':'')+' style="padding:6px 12px;border-radius:6px;border:1px solid #333;background:#1a1a2e;color:#888;font-size:12px;cursor:pointer">◀ 上一页</button>';
-  h+='<span style="color:#a78bfa;font-size:13px;padding:0 10px">'+p+' / '+t+'</span>';
+  h+='<span style="color:#aaa;font-size:12px;padding:0 4px">第</span>';
+  h+='<input id="pageJump" type="number" min="1" max="'+t+'" value="'+p+'" style="width:48px;padding:4px 6px;border-radius:6px;border:1px solid #333;background:#0d0d1a;color:#a78bfa;font-size:13px;text-align:center;outline:none" onkeydown="if(event.key===\'Enter\')searchPage(parseInt(this.value))">';
+  h+='<span style="color:#aaa;font-size:12px;padding:0 2px">/ '+t+'</span>';
+  h+='<button onclick="var v=parseInt(document.getElementById(\'pageJump\').value);if(v>=1&&v<='+t+')searchPage(v)" style="padding:4px 10px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:11px;cursor:pointer">GO</button>';
   h+='<button onclick="searchPage('+(p+1)+')" '+(p>=t?'disabled':'')+' style="padding:6px 12px;border-radius:6px;border:1px solid #333;background:#1a1a2e;color:#888;font-size:12px;cursor:pointer">下一页 ▶</button>';
   n.innerHTML=h;
 }
