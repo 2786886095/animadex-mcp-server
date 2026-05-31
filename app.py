@@ -43,6 +43,7 @@ def _get(path: str, **params) -> dict:
 
 CHAR_INDEX: dict[str, str] = {}
 CHAR_SLUGS: dict[str, list[str]] = {}
+_TRANS_CACHE: dict[str, str] = {}
 LOCAL_DB = None
 LOCAL_READY = False
 API_CACHE: dict[str, dict] = {}
@@ -296,27 +297,13 @@ def _match_chinese(query: str, api_config: dict | None = None) -> str | None:
     if all(ord(c) < 128 for c in q):
         return None
 
-    # 4. Try local character index (fast, no network)
-    if CHAR_SLUGS:
-        cn_chars = set(q)
-        best_score, best_en = 0.0, None
-        for eng_name in CHAR_SLUGS:
-            common = cn_chars & set(eng_name.lower().replace("_", " ").replace("(", "").replace(")", ""))
-            union = cn_chars | set(eng_name.lower().replace("_", " ").replace("(", "").replace(")", ""))
-            score = len(common) / max(len(union), 1)
-            if score > best_score:
-                best_score = score
-                best_en = eng_name
-        if best_score >= 0.3:
-            return best_en
-
-    # 5. AI translation (slow, cached after first use)
+    # 4. AI translation (slow, cached after first use)
     if api_config:
         result = _ai_translate_with_config(query, api_config)
         if result and result != q:
             return result.lower()
 
-    # 6. Google Translate fallback
+    # 5. Google Translate fallback
     translated = _cn_to_en_via_api(q)
     if translated and translated != q and translated.strip():
         return translated.strip().lower()
@@ -660,26 +647,14 @@ CN_MAP = {
 }
 
 
-def cn_to_en(query: str) -> str:
-    """Convert Chinese query to English."""
-    q = query.strip().lower()
-    if q in CN_MAP:
-        return CN_MAP[q]
-    for cn, en in CN_MAP.items():
-        if cn in q or q in cn:
-            return en
-    if all(ord(c) < 128 for c in q):
-        return q
-    return q
-
 
 # ── MCP Tools ──────────────────────────────────────────────────────────
 
 @server.tool(name="search-characters",
              description="搜索角色，返回名称、触发词(trigger/prompt)、标签等")
 def search_characters(query: str = "", page: int = 1, sort: str = "count") -> str:
-    eng = cn_to_en(query)
-    if eng != query:
+    eng = _match_chinese(query)
+    if eng:
         query = eng
     data = _get("/api/characters/search", q=query, page=page, sort=sort)
     results = data.get("results", [])
@@ -869,7 +844,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 var isLocal=location.hostname==='127.0.0.1'||location.hostname==='localhost';
 
 
-var selected={},resultsData=[],_cols=4,curPage=1,curMode='characters',curQ='',totalPages=0;(function(){var bs=document.querySelectorAll(".col-btn");bs.forEach(function(b){b.addEventListener("click",function(){bs.forEach(function(x){x.classList.remove("on")});b.classList.add("on");var c=parseInt(b.dataset.c);if(c>0){_cols=c;document.getElementById("results").style.setProperty("--cols",c)}else{_cols=0;document.getElementById("results").style.setProperty("--cols","auto-fill");document.getElementById("results").style.gridTemplateColumns="repeat(auto-fill,minmax(240px,1fr))"}})})})();
+var overlay,selected={},resultsData=[],_cols=4,curPage=1,curMode='characters',curQ='',totalPages=0;(function(){var bs=document.querySelectorAll(".col-btn");bs.forEach(function(b){b.addEventListener("click",function(){bs.forEach(function(x){x.classList.remove("on")});b.classList.add("on");var c=parseInt(b.dataset.c);if(c>0){_cols=c;document.getElementById("results").style.setProperty("--cols",c)}else{_cols=0;document.getElementById("results").style.setProperty("--cols","auto-fill");document.getElementById("results").style.gridTemplateColumns="repeat(auto-fill,minmax(240px,1fr))"}})})})();
 function search(){
   var q=document.getElementById('q').value.trim(),mode=document.getElementById('mode').value;
   curQ=q;curMode=mode;curPage=1;if(q) window.history.replaceState({},'',window.location.pathname+'?q='+encodeURIComponent(q)+'&mode='+mode);
@@ -982,15 +957,6 @@ function closeSettings(){
   var o=document.querySelector('.detail-overlay.open');
   if(o)o.remove();
 }
-function saveAiSettings(){
-  var ls=window.localStorage;
-  ls.setItem('ad_mode',document.getElementById('ai_sel').value);
-  ls.setItem('ad_url',document.getElementById('ai_url').value);
-  ls.setItem('ad_key',document.getElementById('ai_key').value);
-  ls.setItem('ad_model',document.getElementById('ai_model').value);
-  closeSettings();
-  if(document.getElementById('q').value) search();
-}
 function getAiParams(){
   var ls=window.localStorage;
   if(ls.getItem('ad_mode')!=='ai')return'';
@@ -1057,21 +1023,10 @@ function saveAiSettings(){
     ls.setItem('ad_mode',document.getElementById('ai_sel').value);
     ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
     ls.setItem('ad_key',document.getElementById('ai_key').value);
-    ls.setItem('ad_model',document.getElementById('ai_model').value);
+    ls.setItem('ad_model',getModelVal());
     closeSettings();
     setTimeout(function(){if(document.getElementById('q').value) search()},100);
   }catch(e){alert('保存失败: '+e.message);}
-}
-function saveAiSettings(){
-  var ls=window.localStorage||{};
-  ls.setItem('ad_mode',document.getElementById('ai_sel').value);
-  ls.setItem('ad_url',normUrl(document.getElementById('ai_url').value));
-  ls.setItem('ad_key',document.getElementById('ai_key').value);
-  ls.setItem('ad_model',getModelVal());
-  // Close settings and re-search
-  var ov=document.querySelector('.detail-overlay.open');
-  if(ov) ov.remove();
-  if(document.getElementById('q').value) search();
 }
 
 function openDetail(slug){

@@ -6,3 +6,4 @@ server.log
 cache/*.db
 cache/*.db-shm
 cache/*.db-wal
+cache/thumbs/
