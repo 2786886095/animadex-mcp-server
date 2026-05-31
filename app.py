@@ -899,21 +899,6 @@ function updateSelBar(){var c=Object.keys(selected).length;document.getElementBy
 function copySel(t){var is=Object.keys(selected).sort(function(a,b){return a-b}),items=[];is.forEach(function(i){var r=resultsData[i];if(!r)return;if(t==='trigger')items.push(r.name+': '+r.trigger);else if(t==='tags')items.push(r.name+': '+(r.tags||[]).join(', '));else items.push(r.name+': '+r.trigger+', '+(r.tags||[]).join(', '))});if(!items.length)return;var id=t==='trigger'?'selCopy':t==='tags'?'selCopyTags':'selCopyAll';cf(items.join('\n\n'),id)}
 function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===slug});if(!r)return;var text='';if(t==='trigger')text=r.trigger||'';else if(t==='tags')text=(r.tags||[]).join(', ');else text=(r.trigger||'')+', '+(r.tags||[]).join(', ');var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},1500)}).catch(function(){prompt('复制失败:',text)})}
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
-      if(d.total>0)s+=(s?' · ':'')+'共 '+d.total+' 个结果 · 第 '+d.page+'/'+totalPages+' 页';
-      document.getElementById('stats').innerHTML=s;
-      renderPager();
-      window.scrollTo(0,0);
-    });
-}
-  var h='';
-  if(curPage>1)h+='<button onclick="goPage('+(curPage-1)+')">◀ 上一页</button>';
-  var s=Math.max(1,curPage-2),e=Math.min(totalPages,curPage+2);
-  if(s>1)h+='<button onclick="goPage(1)">1</button>...';
-  for(var i=s;i<=e;i++)h+='<button onclick="goPage('+i+')"'+(i===curPage?' class="on"':'')+'>'+i+'</button>';
-  if(e<totalPages)h+='...<button onclick="goPage('+totalPages+'")>'+totalPages+'</button>';
-  if(curPage<totalPages)h+='<button onclick="goPage('+(curPage+1)+')">下一页 ▶</button>';
-  pg.innerHTML=h;
-}
 
 function showPageNav(d){
   var n=document.getElementById('pagenav');
