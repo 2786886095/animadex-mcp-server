@@ -840,7 +840,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
   .detail-close:hover{background:#2a2a3e}
   .error{color:#f06060;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;padding:40px;grid-column:1/-1}
   .error small{color:#888;margin-top:8px;font-size:13px}.error .hint{color:#aaa;font-size:13px;margin-top:4px}
-  .pager{display:flex;justify-content:center;gap:6px;margin-top:20px;flex-wrap:wrap}.pager button{padding:8px 14px;border-radius:8px;border:1px solid #333;background:#1a1a2e;color:#aaa;font-size:13px;cursor:pointer;transition:all .2s}.pager button:hover{border-color:#a78bfa;color:#a78bfa}.pager button.on{background:#a78bfa22;border-color:#a78bfa;color:#a78bfa;font-weight:600}@media(max-width:900px){#results{grid-template-columns:repeat(var(--cols,2),1fr)!important}.container{padding:16px 12px 90px}}@media(max-width:500px){#results{grid-template-columns:1fr!important;gap:10px}.container{padding:12px 8px 90px}.search-bar input{font-size:16px}.card-copy-btn{font-size:11px;padding:6px 8px}.col-picker{display:none}}
+  .pager button{padding:8px 14px;border-radius:8px;border:1px solid #333;background:#1a1a2e;color:#aaa;font-size:13px;cursor:pointer;transition:all .2s}.pager button:hover{border-color:#a78bfa;color:#a78bfa}.pager button.on{background:#a78bfa22;border-color:#a78bfa;color:#a78bfa;font-weight:600}@media(max-width:900px){#results{grid-template-columns:repeat(var(--cols,2),1fr)!important}.container{padding:16px 12px 90px}}@media(max-width:500px){#results{grid-template-columns:1fr!important;gap:10px}.container{padding:12px 8px 90px}.search-bar input{font-size:16px}.card-copy-btn{font-size:11px;padding:6px 8px}.col-picker{display:none}}
 </style>
 </head>
 <body>
@@ -852,8 +852,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <select id="mode"><option value="characters">角色</option><option value="artists">画师</option><option value="copyrights">系列</option></select>
     <button onclick="search()">搜索</button>
   </div>
+  <div id="pagenav" style="display:none;gap:6px;margin-bottom:8px;align-items:center"></div>
   <div class="toolbar"><div id="stats" class="stats"></div><div class="col-picker"><span>每行</span><button class="col-btn" data-c="1">1</button><button class="col-btn" data-c="2">2</button><button class="col-btn on" data-c="3">3</button><button class="col-btn" data-c="4">4</button><button class="col-btn" data-c="5">5</button><button class="col-btn" data-c="0">自动</button></div></div>
-  <div id="results"></div><div id="pager" class="pager"></div>
+  <div id="results"></div>
 </div>
 <div class="sel-bar" id="selBar">
   <div class="sel-count">已选 <span id="selCount">0</span> 个角色</div>
@@ -871,7 +872,7 @@ var isLocal=location.hostname==='127.0.0.1'||location.hostname==='localhost';
 var selected={},resultsData=[],_cols=4,curPage=1,curMode='characters',curQ='',totalPages=0;(function(){var bs=document.querySelectorAll(".col-btn");bs.forEach(function(b){b.addEventListener("click",function(){bs.forEach(function(x){x.classList.remove("on")});b.classList.add("on");var c=parseInt(b.dataset.c);if(c>0){_cols=c;document.getElementById("results").style.setProperty("--cols",c)}else{_cols=0;document.getElementById("results").style.setProperty("--cols","auto-fill");document.getElementById("results").style.gridTemplateColumns="repeat(auto-fill,minmax(240px,1fr))"}})})})();
 function search(){
   var q=document.getElementById('q').value.trim(),mode=document.getElementById('mode').value;
-  if(q) window.history.replaceState({},'',window.location.pathname+'?q='+encodeURIComponent(q)+'&mode='+mode);
+  curQ=q;curMode=mode;curPage=1;if(q) window.history.replaceState({},'',window.location.pathname+'?q='+encodeURIComponent(q)+'&mode='+mode);
   var el=document.getElementById('results'),st=document.getElementById('stats');
   if(!q){el.innerHTML='<div class="error">请输入搜索关键词</div>';st.textContent='';return}
   document.getElementById('loadingScreen').classList.add('show');st.textContent='';selected={};updateSelBar();el.innerHTML='';
@@ -884,12 +885,12 @@ function search(){
       if(d.translated){s+='<span class="trans">🌐 '+d.translated+'</span>';if(/[一-鿿]/.test(q))s+=' <span style="color:#888;font-size:12px">(建议直接英文名更准确)</span>'}
       totalPages=d.pages||1;if(d.total>0)s+=(s?' · ':'')+'共 '+d.total+' 个结果 · 第 '+d.page+'/'+totalPages+' 页';
       if(!resultsData.length){st.innerHTML=s;el.innerHTML='<div class="error">😕 未找到 &quot;'+q+'&quot; 的结果'+(/[一-鿿]/.test(q)?'<br><small>💡 试试英文名搜索，如: raiden shogun, hu tao, genshin impact</small>':'')+'</div>';return}
-      st.innerHTML=s;
+      st.innerHTML=s;showPageNav(d);
       el.innerHTML=resultsData.map(function(r,i){
         var img=(r.thumb_url||'').replace(/%3A/g,'_').replace(/%2F/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');
         var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
         return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>'
-      }).join('');renderPager();
+      }).join('');
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
 function toggleSel(i){var c=document.querySelector('.card[data-idx="'+i+'"]');if(!c)return;if(selected[i]){delete selected[i];c.classList.remove('selected')}else{selected[i]=true;c.classList.add('selected')}updateSelBar()}
@@ -898,29 +899,12 @@ function updateSelBar(){var c=Object.keys(selected).length;document.getElementBy
 function copySel(t){var is=Object.keys(selected).sort(function(a,b){return a-b}),items=[];is.forEach(function(i){var r=resultsData[i];if(!r)return;if(t==='trigger')items.push(r.name+': '+r.trigger);else if(t==='tags')items.push(r.name+': '+(r.tags||[]).join(', '));else items.push(r.name+': '+r.trigger+', '+(r.tags||[]).join(', '))});if(!items.length)return;var id=t==='trigger'?'selCopy':t==='tags'?'selCopyTags':'selCopyAll';cf(items.join('\n\n'),id)}
 function copyOne(slug,t,btn){var r=resultsData.find(function(x){return x.slug===slug});if(!r)return;var text='';if(t==='trigger')text=r.trigger||'';else if(t==='tags')text=(r.tags||[]).join(', ');else text=(r.trigger||'')+', '+(r.tags||[]).join(', ');var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},1500)}).catch(function(){prompt('复制失败:',text)})}
 function cf(text,id){var btn=document.getElementById(id);if(!btn)return;var o=btn.textContent;navigator.clipboard.writeText(text).then(function(){btn.textContent='✅ 已复制';btn.classList.add('copied');setTimeout(function(){btn.textContent=o;btn.classList.remove('copied')},2000)}).catch(function(){prompt('复制失败:',text)})}
-function goPage(p){
-  curPage=p;
-  selected={};updateSelBar();
-  document.getElementById('loadingScreen').classList.add('show');
-  fetch('/api/search?q='+encodeURIComponent(curQ)+'&mode='+curMode+'&page='+p+'&sort=count'+getAiParams())
-    .then(function(r){return r.json()})
-    .then(function(d){
-      document.getElementById('loadingScreen').classList.remove('show');
-      resultsData=d.results||[];
-      document.getElementById('results').innerHTML=resultsData.map(function(r,i){var img=(r.thumb_url||'').replace(/%3A/g,'_').replace(/%2F/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(''+r.slug+'','trigger',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','tags',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','all',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>';}).join('');
-      totalPages=d.pages||1;
-      var s='';
-      if(d.translated){s+='<span class="trans">🌐 '+d.translated+'</span>';if(/[一-鿿]/.test(curQ))s+=' <span style="color:#888;font-size:12px">(建议直接英文名更准确)</span>'}
       if(d.total>0)s+=(s?' · ':'')+'共 '+d.total+' 个结果 · 第 '+d.page+'/'+totalPages+' 页';
       document.getElementById('stats').innerHTML=s;
       renderPager();
       window.scrollTo(0,0);
     });
 }
-function renderPager(){
-  var pg=document.getElementById('pager');
-  if(!pg)return;
-  if(totalPages<=1){pg.innerHTML='';return}
   var h='';
   if(curPage>1)h+='<button onclick="goPage('+(curPage-1)+')">◀ 上一页</button>';
   var s=Math.max(1,curPage-2),e=Math.min(totalPages,curPage+2);
@@ -929,6 +913,41 @@ function renderPager(){
   if(e<totalPages)h+='...<button onclick="goPage('+totalPages+'")>'+totalPages+'</button>';
   if(curPage<totalPages)h+='<button onclick="goPage('+(curPage+1)+')">下一页 ▶</button>';
   pg.innerHTML=h;
+}
+
+function showPageNav(d){
+  var n=document.getElementById('pagenav');
+  if(!n||!d||d.pages<=1){if(n)n.style.display='none';return}
+  n.style.display='flex';
+  var p=d.page||1,t=d.pages||1,h='';
+  h+='<button onclick="searchPage('+(p-1)+')" '+(p<=1?'disabled':'')+' style="padding:6px 12px;border-radius:6px;border:1px solid #333;background:#1a1a2e;color:#888;font-size:12px;cursor:pointer">◀ 上一页</button>';
+  h+='<span style="color:#a78bfa;font-size:13px;padding:0 10px">'+p+' / '+t+'</span>';
+  h+='<button onclick="searchPage('+(p+1)+')" '+(p>=t?'disabled':'')+' style="padding:6px 12px;border-radius:6px;border:1px solid #333;background:#1a1a2e;color:#888;font-size:12px;cursor:pointer">下一页 ▶</button>';
+  n.innerHTML=h;
+}
+function searchPage(p){
+  if(p<1)return;
+  curPage=p;selected={};updateSelBar();
+  document.getElementById('loadingScreen').classList.add('show');
+  document.getElementById('results').innerHTML='';
+  fetch('/api/search?q='+encodeURIComponent(curQ)+'&mode='+curMode+'&page='+p+'&sort=count'+getAiParams())
+    .then(function(r){return r.json()})
+    .then(function(d){
+      document.getElementById('loadingScreen').classList.remove('show');
+      if(d.error)return;
+      resultsData=d.results||[];
+      var s='';
+      if(d.translated){s+='<span class="trans">🌐 '+d.translated+'</span>';if(/[一-鿿]/.test(curQ))s+=' <span style="color:#888;font-size:12px">(建议直接英文名更准确)</span>';}
+      if(d.total>0)s+=(s?' · ':'')+'共 '+d.total+' 个结果 · 第 '+d.page+'/'+(d.pages||1)+' 页';
+      document.getElementById('stats').innerHTML=s;
+      document.getElementById('results').innerHTML=resultsData.map(function(r,i){
+        var img=(r.thumb_url||'').replace(/%3A/g,'_').replace(/%2F/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');
+        var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
+        return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'trigger\',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'tags\',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(\''+r.slug+'\',\'all\',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>';
+      }).join('');
+      showPageNav(d);
+      window.scrollTo(0,0);
+    });
 }
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
