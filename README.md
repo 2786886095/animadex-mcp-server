@@ -1,3 +1,4 @@
+<img width="1672" height="941" alt="ChatGPT Image 2026年5月31日 18_41_15" src="https://github.com/user-attachments/assets/085bd5c3-ca3a-4326-a0ad-448d9802febb" />
 # AnimaDex MCP Server 🎨
 
 [![在线体验](https://img.shields.io/badge/在线体验-HF_Space-%23FF9D00)](https://langbai666-animadex-mcp.hf.space)
