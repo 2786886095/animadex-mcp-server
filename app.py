@@ -892,13 +892,6 @@ function search(){
       }).join('');renderPager();
     }).catch(function(e){document.getElementById('loadingScreen').classList.remove('show');el.innerHTML='<div class="error">请求失败: '+e.message+'</div>'});
 }
-function renderCards(el){
-  el.innerHTML=resultsData.map(function(r,i){
-    var img=(r.thumb_url||'').replace(/%3A/g,'_').replace(/%2F/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');
-    var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');
-    return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(''+r.slug+'','trigger',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','tags',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','all',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>';
-  }).join('');
-}
 function toggleSel(i){var c=document.querySelector('.card[data-idx="'+i+'"]');if(!c)return;if(selected[i]){delete selected[i];c.classList.remove('selected')}else{selected[i]=true;c.classList.add('selected')}updateSelBar()}
 function clearSelection(){selected={};document.querySelectorAll('.card.selected').forEach(function(c){c.classList.remove('selected')});updateSelBar()}
 function updateSelBar(){var c=Object.keys(selected).length;document.getElementById('selCount').textContent=c;document.getElementById('selBar').classList.toggle('show',c>0);document.getElementById('selCopy').textContent='📋 提示词 ('+c+')';document.getElementById('selCopyTags').textContent='🏷️ 标签 ('+c+')';document.getElementById('selCopyAll').textContent='📋 全部 ('+c+')'}
@@ -914,7 +907,7 @@ function goPage(p){
     .then(function(d){
       document.getElementById('loadingScreen').classList.remove('show');
       resultsData=d.results||[];
-      renderCards(document.getElementById('results'));
+      document.getElementById('results').innerHTML=resultsData.map(function(r,i){var img=(r.thumb_url||'').replace(/%3A/g,'_').replace(/%2F/g,'_'),trigger=(r.trigger||'').replace(/"/g,'&quot;');var tags=(r.tags||[]).map(function(t){return '<span class="card-tag">'+t+'</span>'}).join('');return '<div class="card" data-idx="'+i+'"><div class="check">✓</div><div class="card-img-wrap" onclick="toggleSel('+i+')">'+(img?'<img class="card-img" src="'+(isLocal?'/api/image?url='+img+'':img)+'" alt="" loading="lazy">':'<div style="color:#333;display:flex;align-items:center;justify-content:center;height:100%;font-size:12px">无图</div>')+'</div><div class="card-body"><div class="card-name">'+r.name+'</div><div class="card-copyright">'+(r.copyright_name||'')+'</div><div class="card-meta">📊 '+(r.count||0).toLocaleString()+' 张图片</div><div class="card-copy-row"><button class="card-copy-btn prim" onclick="event.stopPropagation();copyOne(''+r.slug+'','trigger',this)" title="角色标签/触发词">🎯 角色</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','tags',this)" title="特征标签">🏷️ 特征</button><button class="card-copy-btn" onclick="event.stopPropagation();copyOne(''+r.slug+'','all',this)" title="全部">📋 全部</button></div>'+(tags?'<div class="card-tags">'+tags+'</div>':'')+'</div></div>';}).join('');
       totalPages=d.pages||1;
       var s='';
       if(d.translated){s+='<span class="trans">🌐 '+d.translated+'</span>';if(/[一-鿿]/.test(curQ))s+=' <span style="color:#888;font-size:12px">(建议直接英文名更准确)</span>'}
