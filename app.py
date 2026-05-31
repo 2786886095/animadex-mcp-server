@@ -911,45 +911,44 @@ function searchPage(p){
 }
 function goSeries(n){window.location.href="/?q="+encodeURIComponent(n)}
 function showSettings(){
-  if(!(location.hostname==='127.0.0.1'||location.hostname==='localhost')){
-    var o2=document.createElement('div');
-    o2.className='detail-overlay open';
-    o2.innerHTML='<div class="detail-panel" style="max-width:500px"><div class="detail-body"><h3 style="margin-bottom:16px">🔌 API 信息</h3><div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">MCP 地址</div><code style="color:#f0c060;word-break:break-all;font-size:12px">'+window.location.origin+'/sse</code></div><div style="background:#0d0d1a;border-radius:8px;padding:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">翻译方式</div><div style="color:#aaa;font-size:12px">Google 翻译</div></div></div><button onclick="this.parentElement.parentElement.remove()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
-    document.body.appendChild(o2);
-    return;
-  }
   var ls=window.localStorage;
   function g(k,d){return ls.getItem('ad_'+k)||d}
   var o=document.createElement('div');
   o.className='detail-overlay open';
   o.onclick=function(e){if(e.target===o)o.remove()};
+  var mcpUrl=window.location.origin+'/sse';
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
+  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">🔌 MCP 地址</div><code style="color:#f0c060;word-break:break-all;font-size:12px">'+mcpUrl+'</code></div>'
   +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
-  +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
+  +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"'+(!isLocal?' disabled':'')+'>'
   +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译（默认）</option>'
-  +'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译</option>'
-  +'</select></div>'
-  +'<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
-  +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
-  +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
-  +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
-  +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
-  +(g('model','')?'<option value="'+g('model','')+'" selected>'+g('model','')+'</option>':'<option value="">点击「检测模型」获取列表</option>')
-  +'</select></div>'
-  +'<input id="ai_model_custom" style="width:100%;margin-top:6px;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none;display:none" placeholder="自定义模型名">'
-  +'<div style="display:flex;gap:6px;margin-top:6px">'
-  +'<button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button>'
-  +'<button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button>'
+  +(isLocal?'<option value="ai"'+(g('mode','')==='ai'?' selected':'')+'>AI 翻译</option>':'')
+  +'</select>'
+  +(!isLocal?'<div style="color:#888;font-size:11px;margin-top:4px">在线版仅支持 Google 翻译</div>':'')
   +'</div>'
-  +'<div id="ai_test_result" style="font-size:12px;margin-top:6px"></div>'
-  +'</div>'
-  +'<button onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">💾 保存</button>'
+  +(isLocal?(
+    '<div id="ai_config" style="display:'+(g('mode','')==='ai'?'block':'none')+'">'
+    +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔗 API 地址</div>'
+    +'<input id="ai_url" value="'+g('url','https://api.deepseek.com')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+    +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">🔑 API Key</div>'
+    +'<input id="ai_key" type="password" value="'+g('key','')+'" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"></div>'
+    +'<div style="margin-bottom:10px"><div style="color:#888;font-size:13px;margin-bottom:4px">📦 模型</div>'
+    +'<select id="ai_model" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none">'
+    +(g('model','')?'<option value="'+g('model','')+'" selected>'+g('model','')+'</option>':'<option value="">点击「检测模型」获取列表</option>')
+    +'</select></div>'
+    +'<div style="display:flex;gap:6px;margin-top:6px">'
+    +'<button onclick="detectModels()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:13px;cursor:pointer">🔄 检测模型</button>'
+    +'<button onclick="testAiConn()" style="flex:1;padding:8px;border-radius:8px;border:1px solid #666;background:transparent;color:#888;font-size:13px;cursor:pointer">🔌 测试连接</button>'
+    +'</div>'
+    +'<div id="ai_test_result" style="font-size:12px;margin-top:6px"></div>'
+    +'</div>'
+    +'<button onclick="saveAiSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">💾 保存</button>'
+  ):'')
   +'</div><button class="detail-close" onclick="closeSettings()" style="display:block;width:100%;padding:12px;border:none;border-top:1px solid #2a2a3e;background:transparent;color:#888;font-size:14px;cursor:pointer">关闭 ✕</button></div>';
   document.body.appendChild(o);
-  document.getElementById('ai_sel').onchange=function(){
+  var sel=document.getElementById('ai_sel');
+  if(sel) sel.onchange=function(){
     document.getElementById('ai_config').style.display=this.value==='ai'?'block':'none';
   };
 }
