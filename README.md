@@ -138,9 +138,14 @@ animadex-mcp-server/
 
 ## 🔌 MCP 接口
 
-**Streamable HTTP** 端点：`http://127.0.0.1:11451/mcp`
+支持两种传输方式，可同时使用：
 
-配置示例：
+| 传输 | 端点 | 说明 |
+|------|------|------|
+| **Streamable HTTP** | `/mcp` | 流式 HTTP，推荐 |
+| **SSE** | `/sse` | Server-Sent Events |
+
+### Streamable HTTP 配置
 
 ```json
 {
@@ -148,6 +153,19 @@ animadex-mcp-server/
     "animadex": {
       "type": "streamableHttp",
       "url": "http://127.0.0.1:11451/mcp"
+    }
+  }
+}
+```
+
+### SSE 配置
+
+```json
+{
+  "mcpServers": {
+    "animadex": {
+      "type": "sse",
+      "url": "http://127.0.0.1:11451/sse"
     }
   }
 }
