@@ -919,7 +919,7 @@ function showSettings(){
   var o=document.createElement('div');
   o.className='detail-overlay open';
   o.onclick=function(e){if(e.target===o)o.remove()};
-  var mcpUrl=window.location.origin+'/mcp/mcp';
+  var mcpUrl=window.location.origin+'/mcp';
   var sseUrl=window.location.origin+'/sse';
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
@@ -1147,14 +1147,15 @@ async def api_character(request):
 mcp_sse_app = server.sse_app()
 mcp_streamable_http_app = server.streamable_http_app()
 
-app = Starlette(routes=[
-    Route("/", endpoint=index),
-    Route("/api/search", endpoint=api_search),
-    Route("/api/character", endpoint=api_character),
-    Route("/api/image", endpoint=api_image),
-    Mount("/mcp", app=mcp_streamable_http_app),
-    Mount("/", app=mcp_sse_app),
-])
+# Use streamable HTTP app as base (lifespan works), add web UI + SSE routes
+app = mcp_streamable_http_app
+# Web UI routes before /mcp
+app.routes.insert(0, Route("/api/image", endpoint=api_image))
+app.routes.insert(0, Route("/api/character", endpoint=api_character))
+app.routes.insert(0, Route("/api/search", endpoint=api_search))
+app.routes.insert(0, Route("/", endpoint=index))
+# SSE at the end — only catches paths not matched above (/sse, /messages/)
+app.routes.append(Mount("/", app=mcp_sse_app))
 
 def _precache_thumbs():
     """Background download all 36k+ thumbnails from local DB."""
