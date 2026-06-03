@@ -142,7 +142,7 @@ animadex-mcp-server/
 
 | 传输 | 端点 | 说明 |
 |------|------|------|
-| **Streamable HTTP** | `/mcp` | 流式 HTTP，推荐 |
+| **Streamable HTTP** | `/mcp/mcp` | 流式 HTTP，推荐 |
 | **SSE** | `/sse` | Server-Sent Events |
 
 ### Streamable HTTP 配置
@@ -152,7 +152,7 @@ animadex-mcp-server/
   "mcpServers": {
     "animadex": {
       "type": "streamableHttp",
-      "url": "http://127.0.0.1:11451/mcp"
+      "url": "http://127.0.0.1:11451/mcp/mcp"
     }
   }
 }

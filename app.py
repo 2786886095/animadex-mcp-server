@@ -919,7 +919,7 @@ function showSettings(){
   var o=document.createElement('div');
   o.className='detail-overlay open';
   o.onclick=function(e){if(e.target===o)o.remove()};
-  var mcpUrl=window.location.origin+'/mcp';
+  var mcpUrl=window.location.origin+'/mcp/mcp';
   var sseUrl=window.location.origin+'/sse';
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
@@ -1144,8 +1144,6 @@ async def api_character(request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
-# Set streamable HTTP internal route to "/" so Mount("/mcp", ...) works correctly
-server.settings.streamable_http_path = "/"
 mcp_sse_app = server.sse_app()
 mcp_streamable_http_app = server.streamable_http_app()
 
