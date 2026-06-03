@@ -1147,51 +1147,17 @@ async def api_character(request):
 mcp_sse_app = server.sse_app()
 mcp_streamable_http_app = server.streamable_http_app()
 
-# ASGI middleware to dispatch both MCP transports by path
-class MCPDispatch:
-    def __init__(self, app, streamable_app, sse_app):
-        self.app = app
-        self.streamable_app = streamable_app
-        self.sse_app = sse_app
+# Extract the ASGI handler from the streamable HTTP app's /mcp route
+_streamable_handler = mcp_streamable_http_app.routes[0].endpoint
 
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "lifespan":
-            await self.app(scope, receive, send)
-            return
-        if scope["type"] in ("http", "websocket"):
-            path = scope.get("path", "")
-            if path.startswith("/mcp"):
-                try:
-                    await self.streamable_app(scope, receive, send)
-                except Exception as e:
-                    import traceback
-                    traceback.print_exc()
-                    from starlette.responses import PlainTextResponse
-                    resp = PlainTextResponse(f"500 Streamable HTTP Error: {e}", status_code=500)
-                    await resp(scope, receive, send)
-                return
-            elif path.startswith("/sse") or path.startswith("/messages"):
-                try:
-                    await self.sse_app(scope, receive, send)
-                except Exception as e:
-                    import traceback
-                    traceback.print_exc()
-                    from starlette.responses import PlainTextResponse
-                    resp = PlainTextResponse(f"500 SSE Error: {e}", status_code=500)
-                    await resp(scope, receive, send)
-                return
-        await self.app(scope, receive, send)
-
-app = MCPDispatch(
-    Starlette(routes=[
-        Route("/", endpoint=index),
-        Route("/api/search", endpoint=api_search),
-        Route("/api/character", endpoint=api_character),
-        Route("/api/image", endpoint=api_image),
-    ]),
-    mcp_streamable_http_app,
-    mcp_sse_app,
-)
+app = Starlette(routes=[
+    Route("/", endpoint=index),
+    Route("/api/search", endpoint=api_search),
+    Route("/api/character", endpoint=api_character),
+    Route("/api/image", endpoint=api_image),
+    Route("/mcp", endpoint=_streamable_handler, methods=["GET", "POST", "DELETE"]),
+    Mount("/", app=mcp_sse_app),
+])
 
 def _precache_thumbs():
     """Background download all 36k+ thumbnails from local DB."""
