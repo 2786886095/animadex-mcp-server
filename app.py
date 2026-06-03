@@ -919,10 +919,14 @@ function showSettings(){
   var o=document.createElement('div');
   o.className='detail-overlay open';
   o.onclick=function(e){if(e.target===o)o.remove()};
-  var mcpUrl=window.location.origin+'/sse';
+  var mcpSseUrl=window.location.origin+'/sse';
+  var mcpStreamUrl=window.location.origin+'/mcp';
   o.innerHTML='<div class="detail-panel" style="max-width:520px"><div class="detail-body">'
   +'<h3 style="margin-bottom:16px">⚙️ 设置</h3>'
-  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"><div style="color:#888;margin-bottom:4px">🔌 MCP 地址</div><code style="color:#f0c060;word-break:break-all;font-size:12px">'+mcpUrl+'</code></div>'
+  +'<div style="background:#0d0d1a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">'
+  +'<div style="color:#888;margin-bottom:4px">🔌 MCP SSE</div><code style="color:#f0c060;word-break:break-all;font-size:12px">'+mcpSseUrl+'</code>'
+  +'<div style="color:#888;margin-top:10px;margin-bottom:4px">📡 MCP Streamable HTTP</div><code style="color:#60c0f0;word-break:break-all;font-size:12px">'+mcpStreamUrl+'</code>'
+  +'</div>'
   +'<div style="margin-bottom:12px"><div style="color:#888;font-size:13px;margin-bottom:4px">🌐 翻译方式</div>'
   +'<select id="ai_sel" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:13px;outline:none"'+(!isLocal?' disabled':'')+'>'
   +'<option value="google"'+(g('mode','')===''?' selected':'')+'>Google 翻译（默认）</option>'
@@ -1141,12 +1145,14 @@ async def api_character(request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 mcp_sse_app = server.sse_app()
+mcp_streamable_http_app = server.streamable_http_app()
 
 app = Starlette(routes=[
     Route("/", endpoint=index),
     Route("/api/search", endpoint=api_search),
     Route("/api/character", endpoint=api_character),
     Route("/api/image", endpoint=api_image),
+    Mount("/mcp", app=mcp_streamable_http_app),
     Mount("/", app=mcp_sse_app),
 ])
 

@@ -128,9 +128,14 @@ animadex-mcp-server/
 
 ## 🔌 MCP 接口
 
-MCP 端点：`http://127.0.0.1:11451/sse`
+支持两种传输方式：
 
-在 Claude Code 中配置：
+| 传输 | 端点 | 说明 |
+|------|------|------|
+| **SSE** | `http://127.0.0.1:11451/sse` | Server-Sent Events |
+| **Streamable HTTP** | `http://127.0.0.1:11451/mcp` | 流式 HTTP 传输 |
+
+### SSE 配置示例
 
 ```json
 {
@@ -138,6 +143,19 @@ MCP 端点：`http://127.0.0.1:11451/sse`
     "animadex": {
       "type": "sse",
       "url": "http://127.0.0.1:11451/sse"
+    }
+  }
+}
+```
+
+### Streamable HTTP 配置示例
+
+```json
+{
+  "mcpServers": {
+    "animadex": {
+      "type": "streamableHttp",
+      "url": "http://127.0.0.1:11451/mcp"
     }
   }
 }
