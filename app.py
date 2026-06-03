@@ -1144,18 +1144,17 @@ async def api_character(request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
+# Set streamable HTTP internal route to "/" so Mount("/mcp", ...) works correctly
+server.settings.streamable_http_path = "/"
 mcp_sse_app = server.sse_app()
 mcp_streamable_http_app = server.streamable_http_app()
-
-# Extract the ASGI handler from the streamable HTTP app's /mcp route
-_streamable_handler = mcp_streamable_http_app.routes[0].endpoint
 
 app = Starlette(routes=[
     Route("/", endpoint=index),
     Route("/api/search", endpoint=api_search),
     Route("/api/character", endpoint=api_character),
     Route("/api/image", endpoint=api_image),
-    Route("/mcp", endpoint=_streamable_handler, methods=["GET", "POST", "DELETE"]),
+    Mount("/mcp", app=mcp_streamable_http_app),
     Mount("/", app=mcp_sse_app),
 ])
 
