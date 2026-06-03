@@ -1,3 +1,13 @@
+---
+title: AnimaDex MCP
+emoji: 🎨
+colorFrom: purple
+colorTo: pink
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 <img width="1672" height="941" alt="ChatGPT Image 2026年5月31日 18_41_15" src="https://github.com/user-attachments/assets/085bd5c3-ca3a-4326-a0ad-448d9802febb" />
 # AnimaDex MCP Server 🎨
 
