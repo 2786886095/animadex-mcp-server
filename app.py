@@ -1155,6 +1155,10 @@ class MCPDispatch:
         self.sse_app = sse_app
 
     async def __call__(self, scope, receive, send):
+        if scope["type"] == "lifespan":
+            # Forward lifespan to all sub-apps, main app handles startup/shutdown
+            await self.app(scope, receive, send)
+            return
         if scope["type"] in ("http", "websocket"):
             path = scope.get("path", "")
             if path.startswith("/mcp"):
