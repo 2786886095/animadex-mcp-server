@@ -1156,16 +1156,29 @@ class MCPDispatch:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
-            # Forward lifespan to all sub-apps, main app handles startup/shutdown
             await self.app(scope, receive, send)
             return
         if scope["type"] in ("http", "websocket"):
             path = scope.get("path", "")
             if path.startswith("/mcp"):
-                await self.streamable_app(scope, receive, send)
+                try:
+                    await self.streamable_app(scope, receive, send)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    from starlette.responses import PlainTextResponse
+                    resp = PlainTextResponse(f"500 Streamable HTTP Error: {e}", status_code=500)
+                    await resp(scope, receive, send)
                 return
             elif path.startswith("/sse") or path.startswith("/messages"):
-                await self.sse_app(scope, receive, send)
+                try:
+                    await self.sse_app(scope, receive, send)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    from starlette.responses import PlainTextResponse
+                    resp = PlainTextResponse(f"500 SSE Error: {e}", status_code=500)
+                    await resp(scope, receive, send)
                 return
         await self.app(scope, receive, send)
 
