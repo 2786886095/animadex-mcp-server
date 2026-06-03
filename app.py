@@ -1147,7 +1147,7 @@ app = Starlette(routes=[
     Route("/api/search", endpoint=api_search),
     Route("/api/character", endpoint=api_character),
     Route("/api/image", endpoint=api_image),
-    Mount("/mcp", app=mcp_streamable_http_app),
+    Mount("/", app=mcp_streamable_http_app),
 ])
 
 def _precache_thumbs():
