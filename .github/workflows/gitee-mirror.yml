@@ -1,43 +1,69 @@
-name: Mirror to Gitee
+name: Mirror source snapshot to Gitee
 
 on:
   push:
     branches:
-      - '**'
-    tags:
-      - '**'
-  delete:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: gitee-mirror-${{ github.repository }}
+  group: gitee-snapshot-${{ github.repository }}
   cancel-in-progress: true
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Check out full history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Clone source without generated thumbnail cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="${RUNNER_TEMP}/github-source"
+          git clone --filter=blob:none --depth=1 --no-checkout \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "${src}"
+          git -C "${src}" sparse-checkout init --no-cone
+          printf '/*\n!/cache/thumbs/\n' > "${src}/.git/info/sparse-checkout"
+          git -C "${src}" checkout --force main
 
-      - name: Mirror branches and tags to Gitee
+      - name: Update Gitee source snapshot
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          repo="${GITHUB_REPOSITORY#*/}"
-          git fetch --prune origin \
-            '+refs/heads/*:refs/remotes/origin/*' \
-            '+refs/tags/*:refs/tags/*'
-          git update-ref -d refs/remotes/origin/HEAD || true
-          git remote add gitee "https://langbai666:${GITEE_TOKEN}@gitee.com/langbai666/${repo}.git"
-          git push --force --prune gitee \
-            'refs/remotes/origin/*:refs/heads/*'
-          git push --force --prune gitee \
-            'refs/tags/*:refs/tags/*'
+          src="${RUNNER_TEMP}/github-source"
+          dst="${RUNNER_TEMP}/gitee-snapshot"
+          mkdir -p "${dst}"
+          git -C "${dst}" init
+          git -C "${dst}" config user.name 'Langbai Mirror Bot'
+          git -C "${dst}" config user.email '2786886095@users.noreply.github.com'
+          git -C "${dst}" remote add gitee \
+            "https://langbai666:${GITEE_TOKEN}@gitee.com/langbai666/animadex-mcp-server.git"
+
+          if git -C "${dst}" fetch --depth=1 gitee main; then
+            git -C "${dst}" checkout -B main FETCH_HEAD
+            git -C "${dst}" rm -r --ignore-unmatch .
+          else
+            git -C "${dst}" checkout --orphan main
+          fi
+
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='cache/thumbs/' \
+            "${src}/" "${dst}/"
+          git -C "${dst}" add -A
+
+          if git -C "${dst}" diff --cached --quiet; then
+            echo 'No source changes to mirror.'
+            exit 0
+          fi
+
+          git -C "${dst}" commit -m "mirror: GitHub ${GITHUB_SHA}"
+          git -C "${dst}" push --force gitee main
